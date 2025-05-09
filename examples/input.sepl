@@ -1,0 +1,6 @@
+main = $() {
+    @a = input();
+    @b = input();
+    print(a + b);
+    return 0;
+};

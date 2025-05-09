@@ -1,0 +1,13 @@
+@operations = $(a, b) {
+    print(a + b);
+    print(a - b);
+    print(a * b);
+    print(a / b);
+};
+
+main = $() {
+    @a = input();
+    @b = input();
+    operations(a, b);
+    return 0;
+};
