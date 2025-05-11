@@ -2,11 +2,11 @@ main = $() {
     @a = input();
     @b = input();
     if (a > b) {
-        print(1);
+        print("a is greater than b");
     } else if (a < b) {
-        print(-1);
+        print("a is lesser than b");
     } else {
-        print(0);
+        print("a is equal to b");
     }
 
     return 0;

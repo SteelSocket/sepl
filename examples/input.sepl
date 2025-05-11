@@ -1,6 +1,6 @@
 main = $() {
     @a = input();
     @b = input();
-    print(a + b);
+    print("Addition:", a + b);
     return 0;
 };

@@ -230,6 +230,9 @@ SeplValue gv_print(SeplArgs args, SeplError *_) {
             case SEPL_VAL_NUM:
                 printf("%lf ", args.values[i].as.num);
                 break;
+            case SEPL_VAL_STR:
+                printf("%s ", (const char *)args.values[i].as.obj);
+                break;
             default:
                 printf("%p ", args.values[i].as.obj);
                 break;
@@ -256,6 +259,7 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+    // Setup the module
     unsigned char bc_buf[MAX_BC_BUF];
     SeplValue val_buf[MAX_VAL_BUF];
     SeplModule module = sepl_mod_new(bc_buf, MAX_BC_BUF, val_buf, MAX_VAL_BUF);
@@ -268,26 +272,44 @@ int main(int argc, char *argv[]) {
     module.exports = exports;
     module.esize = array_len(exports);
 
+    // Compile the file as a module
     SeplError err = sepl_com_module(contents, &module, env);
     free(contents);
     assert_error(err, "sepl compilation error: ");
 
+    // Execute the module to set up the main function
     sepl_mod_init(&module, &err, env);
     sepl_mod_exec(&module, &err, env);
     assert_error(err, "sepl runtime error: ");
 
+    // Get the main function
     SeplValue main_func = sepl_mod_getexport(&module, env, "main");
     if (!sepl_val_isfun(main_func)) {
         printf("sepl error: No main function found\n");
         return 1;
     }
-    SeplArgs args;
-    args.values = (SeplValue[]){sepl_val_number(argc), sepl_val_object(argv)};
-    args.size = 2;
 
+    // Pass the argv to sepl main
+    // Unfortunatly sepl does not support variadic arguments
+    // So cli tools using n arguments are not supported
+    SeplArgs args;
+    args.values = malloc(sizeof(SeplValue) * (argc + 1));
+    args.size = argc + 1;
+    args.values[0] = sepl_val_number(argc);
+    for (int i=1; i < args.size; i++) {
+        args.values[i] = sepl_val_str(argv[i - 1]);
+    }
+
+    // Load the main function into the module to be executed
     sepl_mod_initfunc(&module, &err, main_func, args);
+    free(args.values);
+    
+    // Execute the main function
     SeplValue retv = sepl_mod_exec(&module, &err, env);
     assert_error(err, "sepl runtime error: ");
+
+    // Cleanup any global variables
+    sepl_mod_cleanup(&module, env);
 
     return (int)retv.as.num;
 }

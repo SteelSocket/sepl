@@ -31,6 +31,7 @@ void check_toks() {
     assert(first("@").type == SEPL_TOK_VAR);
     assert(first("$").type == SEPL_TOK_FUNC);
     assert(first("NONE").type == SEPL_TOK_NONE);
+    assert(first("\"hello\"").type == SEPL_TOK_STRING);
 
     assert(first("=").type == SEPL_TOK_ASSIGN);
 
@@ -64,6 +65,11 @@ void check_toks() {
 }
 
 void check_num() {
+    assert(first("1a3").type == SEPL_TOK_ERROR);
+    assert(first("10.a").type == SEPL_TOK_ERROR);
+    assert(first("10.1.").type == SEPL_TOK_ERROR);
+    assert(first(".12").type == SEPL_TOK_ERROR);
+
     assert(sepl_lex_num(first("10")) == 10.0);
     assert(sepl_lex_num(first("3.14")) == 3.14);
     assert(
@@ -76,6 +82,40 @@ void check_num() {
         1.0 / 0.0);
 }
 
+int cmp_strtok_(const char *s1, const char *s2) {
+    SeplToken tok = first(s1);
+    const char *start = tok.start + 1;
+
+    while (start != tok.end && *s2 != '\0') {
+        if (*start == '\\')
+            start++;
+        if (*start++ != *s2++)
+            return 0;
+    }
+
+    return *start == '"' && *s2 == '\0';
+}
+#define cmp_strtok(expr, str) (cmp_strtok_(#expr, str))
+
+void check_string() {
+    assert(first("\"\"").type == SEPL_TOK_STRING);
+    assert(first("\"return\"").type == SEPL_TOK_STRING);
+    assert(first("\"@hello = 302;\"").type == SEPL_TOK_STRING);
+
+    assert(first("\"hello").type == SEPL_TOK_ERROR);
+
+    assert(cmp_strtok("hello", "hello"));
+    assert(cmp_strtok("\"hello\"", "\"hello\""));
+
+    // The lexer does not convert "\\b" into "\b"
+    // The special character convertion is done at the
+    // compilation stage
+    assert(!cmp_strtok("\b", "\b"));
+    assert(!cmp_strtok("\n", "\n"));
+    assert(!cmp_strtok("\r", "\r"));
+    assert(!cmp_strtok("\a", "\a"));
+}
+
 void check_identifier() {
     assert(first("retur").type == SEPL_TOK_IDENTIFIER);
     assert(first("returnq").type == SEPL_TOK_IDENTIFIER);
@@ -83,4 +123,5 @@ void check_identifier() {
     assert(first("returnq 1").type == SEPL_TOK_IDENTIFIER);
 }
 
-SEPL_TEST_GROUP(check_eof, check_toks, check_num, check_identifier);
+SEPL_TEST_GROUP(check_eof, check_toks, check_num, check_string,
+                check_identifier);

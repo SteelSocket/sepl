@@ -48,6 +48,7 @@ typedef struct {
 } SeplParseRule;
 
 SEPL_API void sepl__number(SeplCompiler *com);
+SEPL_API void sepl__string(SeplCompiler *com);
 SEPL_API void sepl__none(SeplCompiler *com);
 
 SEPL_API void sepl__unary(SeplCompiler *com);
@@ -78,6 +79,7 @@ SEPL_API SeplParseRule rules[SEPL_TOK_EOF + 1] = {
     {sepl__variable, SEPL_NULL, SEPL_PRE_ASSIGN}, /* SEPL_TOK_VAR */
     {sepl__func, SEPL_NULL, SEPL_PRE_ASSIGN},     /* SEPL_TOK_FUNC */
     {sepl__none, SEPL_NULL, SEPL_PRE_ASSIGN},     /* SEPL_TOK_NONE */
+    {sepl__string, SEPL_NULL, SEPL_PRE_ASSIGN},   /* SEPL_TOK_STRING */
 
     {SEPL_NULL, sepl__binary, SEPL_PRE_ASSIGN}, /* SEPL_TOK_ASSIGN */
 
@@ -159,7 +161,7 @@ SEPL_API SeplParseRule rules[SEPL_TOK_EOF + 1] = {
         }                                                    \
     } while (0);
 
-SEPL_API void parse(SeplCompiler *com, Precedence pre) {
+SEPL_API void sepl__parse(SeplCompiler *com, Precedence pre) {
     SeplToken tok = sepl__currtok(com);
 
     SeplParseRule *rule = sepl__getrule(tok);
@@ -307,6 +309,26 @@ SEPL_API void sepl__number(SeplCompiler *com) {
     sepl__check_vlimit(com);
 }
 
+SEPL_API void sepl__string(SeplCompiler *com) {
+    SeplToken cur = sepl__currtok(com);
+    sepl_size i, slen = cur.end - cur.start - 2;
+    unsigned char *wlen;
+
+    sepl__writebyte(com, SEPL_BC_STR);
+    wlen = sepl__writeplaceholder(com);
+    for (i = 0; i < slen; i++) {
+        char c = cur.start[i + 1];
+        if (c == '\\')
+            c = sepl_to_special(cur.start[++i + 1]);
+        sepl__writebyte(com, (unsigned char)c);
+    }
+    sepl__writebyte(com, '\0');
+    *(sepl_size *)wlen = (com->mod->bytes + com->mod->bpos) - wlen - 4 - 1;
+
+    com->scope_size++;
+    sepl__check_vlimit(com);
+}
+
 SEPL_API void sepl__none(SeplCompiler *com) {
     sepl__writebyte(com, SEPL_BC_NONE);
     com->scope_size++;
@@ -317,7 +339,7 @@ SEPL_API void sepl__unary(SeplCompiler *com) {
     SeplToken op = sepl__currtok(com);
 
     sepl__nexttok(com);
-    parse(com, SEPL_PRE_UNARY);
+    sepl__parse(com, SEPL_PRE_UNARY);
     sepl__check(com);
 
     switch (op.type) {
@@ -337,7 +359,7 @@ SEPL_API void sepl__binary(SeplCompiler *com) {
     SeplParseRule *rule = sepl__getrule(op);
 
     sepl__nexttok(com);
-    parse(com, rule->pre + 1);
+    sepl__parse(com, rule->pre + 1);
     sepl__check(com);
     com->scope_size--;
 
@@ -387,7 +409,7 @@ SEPL_API void sepl__and(SeplCompiler *com) {
     com->scope_size--;
 
     sepl__nexttok(com);
-    parse(com, SEPL_PRE_AND + 1);
+    sepl__parse(com, SEPL_PRE_AND + 1);
 
     if (sepl__peektok(com).type != SEPL_TOK_AND) {
         unsigned char *jfalse, *jtrue;
@@ -424,7 +446,7 @@ SEPL_API void sepl__or(SeplCompiler *com) {
     sepl__setpholder(com, next);
 
     sepl__nexttok(com);
-    parse(com, SEPL_PRE_OR + 1);
+    sepl__parse(com, SEPL_PRE_OR + 1);
 
     if (sepl__peektok(com).type != SEPL_TOK_OR) {
         unsigned char *jfalse, *jtrue;
@@ -597,7 +619,7 @@ SEPL_API void sepl__grouping(SeplCompiler *com) {
     sepl__check_tok(com, SEPL_TOK_RPAREN);
 }
 
-SEPL_API void sepl__expr(SeplCompiler *com) { parse(com, SEPL_PRE_EXPR); }
+SEPL_API void sepl__expr(SeplCompiler *com) { sepl__parse(com, SEPL_PRE_EXPR); }
 
 SEPL_API void sepl__return(SeplCompiler *com) {
     sepl_size old_ss = com->scope_size;

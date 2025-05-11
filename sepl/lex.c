@@ -17,6 +17,36 @@ SEPL_LIB char sepl_is_identifier(char c) {
 
 SEPL_LIB int sepl_to_digit(char c) { return c - '0'; }
 
+SEPL_LIB char sepl_to_special(char c) {
+    switch (c) {
+        case 'n':
+            return '\n';
+        case 't':
+            return '\t';
+        case 'r':
+            return '\r';
+        case 'b':
+            return '\b';
+        case 'f':
+            return '\f';
+        case 'v':
+            return '\v';
+        case 'a':
+            return '\a';
+        case '\\':
+            return '\\';
+        case '\'':
+            return '\'';
+        case '\"':
+            return '\"';
+        case '?':
+            return '\?';
+        case '0':
+            return '\0';
+    }
+    return c;
+}
+
 SEPL_API SeplToken sepl__make_tok(SeplLexer *lex, SeplTokenT type) {
     SeplToken tok;
     tok.type = type;
@@ -61,6 +91,29 @@ invalid_num:
     tok.type = SEPL_TOK_ERROR;
     tok.start = "Invalid number";
     tok.line = lex->line;
+    return tok;
+}
+
+SEPL_API SeplToken sepl__make_string(SeplLexer *lex) {
+    SeplToken tok;
+    tok.type = SEPL_TOK_STRING;
+    tok.start = lex->source - 1;
+    tok.end = lex->source;
+
+    while (*tok.end != '"' && *tok.end != '\0') {
+        if (*tok.end++ == '\\') {
+            tok.end++;
+        }
+    }
+
+    if (*tok.end == '\0') {
+        tok.type = SEPL_TOK_ERROR;
+        tok.start = "Unexpected EOF while parsing string";
+        tok.line = lex->line;
+        return tok;
+    }
+
+    lex->source = ++tok.end;
     return tok;
 }
 
@@ -182,6 +235,8 @@ SEPL_API SeplToken next_token(SeplLexer *lex) {
             return sepl__make_tok(lex, SEPL_TOK_VAR);
         case '$':
             return sepl__make_tok(lex, SEPL_TOK_FUNC);
+        case '"':
+            return sepl__make_string(lex);
 
         case 'e':
             return sepl__make_keyword(lex, "else", SEPL_TOK_ELSE);

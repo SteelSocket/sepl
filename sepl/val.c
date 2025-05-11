@@ -23,6 +23,13 @@ SEPL_LIB SeplValue sepl_val_number(double vnum) {
     return r;
 }
 
+SEPL_LIB SeplValue sepl_val_str(char *str) {
+    SeplValue r;
+    r.type = SEPL_VAL_STR;
+    r.as.obj = str;
+    return r;
+}
+
 SEPL_LIB SeplValue sepl_val_func(sepl_size pos) {
     SeplValue r;
     r.type = SEPL_VAL_FUNC;

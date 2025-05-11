@@ -1,16 +1,16 @@
 /*
  * zlib License
- *
+ * 
  * (C) 2025 G.Nithesh (SteelSocket)
- *
+ * 
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
  * arising from the use of this software.
- *
+ * 
  * Permission is granted to anyone to use this software for any purpose,
  * including commercial applications, and to alter it and redistribute it
  * freely, subject to the following restrictions:
- *
+ * 
  * 1. The origin of this software must not be misrepresented; you must not
  *    claim that you wrote the original software. If you use this software
  *    in a product, an acknowledgment in the product documentation would be
@@ -23,9 +23,11 @@
 #ifndef SEPL_LIBRARY
 #define SEPL_LIBRARY
 
+
 #ifdef __cplusplus
 extern "C" {
 #endif
+
 
 #define sepl__static_assert(cond, name) \
     typedef char sepl__assert_##name[(cond) ? 1 : -1]
@@ -50,6 +52,8 @@ sepl__static_assert(sepl__is_unsigned(sepl_size), is_unsigned);
 #define SEPL_API static
 #endif
 
+
+
 typedef enum {
     SEPL_TOK_ERROR,
     SEPL_TOK_SEMICOLON,
@@ -59,6 +63,7 @@ typedef enum {
     SEPL_TOK_VAR,
     SEPL_TOK_FUNC,
     SEPL_TOK_NONE,
+    SEPL_TOK_STRING,
 
     SEPL_TOK_ASSIGN,
 
@@ -111,11 +116,14 @@ SEPL_LIB char sepl_is_alpha(char c);
 SEPL_LIB char sepl_is_delim(char c);
 SEPL_LIB char sepl_is_identifier(char c);
 SEPL_LIB int sepl_to_digit(char c);
+SEPL_LIB char sepl_to_special(char c);
 
 SEPL_LIB SeplLexer sepl_lex_init(const char *source);
 SEPL_LIB SeplToken sepl_lex_next(SeplLexer *lex);
 SEPL_LIB SeplToken sepl_lex_peek(SeplLexer lex);
 SEPL_LIB double sepl_lex_num(SeplToken tok);
+
+
 
 typedef enum {
     SEPL_ERR_OK,
@@ -180,12 +188,15 @@ typedef struct {
      (e)->info.tokd.exp = etok)
 #define sepl_err_iden(e, code, i) (sepl_err_new(e, code), (e)->info.iden = i)
 
+
+
 typedef struct SeplValue SeplValue;
 
 typedef enum {
     SEPL_VAL_NONE,
     SEPL_VAL_SCOPE,
     SEPL_VAL_NUM,
+    SEPL_VAL_STR,
     SEPL_VAL_FUNC,
     SEPL_VAL_CFUNC,
     SEPL_VAL_REF,
@@ -209,7 +220,7 @@ struct SeplValue {
         double num;
         /* SEPL_VAL_CFUNC */
         sepl_c_func cfunc;
-        /* SEPL_VAL_REF, SEPL_VAL_OBJ */
+        /* SEPL_VAL_STR, SEPL_VAL_REF, SEPL_VAL_OBJ */
         void *obj;
     } as;
 };
@@ -219,6 +230,7 @@ extern const SeplValue SEPL_NONE;
 #define sepl_val_isnone(val) (val.type == SEPL_VAL_NONE)
 #define sepl_val_isscp(val) (val.type == SEPL_VAL_SCOPE)
 #define sepl_val_isnum(val) (val.type == SEPL_VAL_NUM)
+#define sepl_val_isstr(val) (val.type == SEPL_VAL_STR)
 #define sepl_val_isfun(val) (val.type == SEPL_VAL_FUNC)
 #define sepl_val_iscfun(val) (val.type == SEPL_VAL_CFUNC)
 #define sepl_val_isref(val) (val.type == SEPL_VAL_REF)
@@ -227,10 +239,14 @@ extern const SeplValue SEPL_NONE;
 SEPL_LIB SeplValue sepl_val_asref(void *v);
 SEPL_LIB SeplValue sepl_val_scope(sepl_size pos);
 SEPL_LIB SeplValue sepl_val_number(double vnum);
+SEPL_LIB SeplValue sepl_val_str(char *str);
 SEPL_LIB SeplValue sepl_val_func(sepl_size pos);
 SEPL_LIB SeplValue sepl_val_cfunc(sepl_c_func cfunc);
+
 SEPL_LIB SeplValue sepl_val_object(void *vobj);
 SEPL_LIB SeplValue sepl_val_type(void *vobj, sepl_size custom_id);
+
+
 
 typedef struct {
     const char *key;
@@ -244,6 +260,8 @@ typedef struct {
     sepl_size predef_len;
 } SeplEnv;
 
+
+
 typedef enum {
     SEPL_BC_RETURN,
     SEPL_BC_JUMPIF,
@@ -254,6 +272,7 @@ typedef enum {
 
     SEPL_BC_NONE,
     SEPL_BC_CONST,
+    SEPL_BC_STR,
     SEPL_BC_SCOPE,
     SEPL_BC_FUNC,
 
@@ -304,13 +323,15 @@ SEPL_LIB sepl_size sepl_mod_bcsize(SeplModule *mod, sepl_size s, SeplError *e);
 SEPL_LIB sepl_size sepl_mod_val(SeplModule *mod, SeplValue v, SeplError *e);
 
 SEPL_LIB void sepl_mod_init(SeplModule *mod, SeplError *e, SeplEnv env);
+SEPL_LIB void sepl_mod_cleanup(SeplModule *mod, SeplEnv env);
 SEPL_LIB SeplValue sepl_mod_step(SeplModule *mod, SeplError *e, SeplEnv env);
 SEPL_LIB SeplValue sepl_mod_exec(SeplModule *mod, SeplError *e, SeplEnv env);
 SEPL_LIB void sepl_mod_initfunc(SeplModule *mod, SeplError *e, SeplValue func,
                                 SeplArgs args);
-
 SEPL_LIB SeplValue sepl_mod_getexport(SeplModule *mod, SeplEnv env,
                                       const char *key);
+
+
 
 SEPL_LIB SeplError sepl_com_module(const char *source, SeplModule *mod,
                                    SeplEnv env);
@@ -324,6 +345,8 @@ SEPL_LIB SeplError sepl_com_expr(const char *source, SeplModule *mod,
 #endif
 
 #ifdef SEPL_IMPLEMENTATION
+
+
 
 SEPL_LIB char sepl_is_digit(char c) { return c >= '0' && c <= '9'; }
 
@@ -339,6 +362,36 @@ SEPL_LIB char sepl_is_identifier(char c) {
 }
 
 SEPL_LIB int sepl_to_digit(char c) { return c - '0'; }
+
+SEPL_LIB char sepl_to_special(char c) {
+    switch (c) {
+        case 'n':
+            return '\n';
+        case 't':
+            return '\t';
+        case 'r':
+            return '\r';
+        case 'b':
+            return '\b';
+        case 'f':
+            return '\f';
+        case 'v':
+            return '\v';
+        case 'a':
+            return '\a';
+        case '\\':
+            return '\\';
+        case '\'':
+            return '\'';
+        case '\"':
+            return '\"';
+        case '?':
+            return '\?';
+        case '0':
+            return '\0';
+    }
+    return c;
+}
 
 SEPL_API SeplToken sepl__make_tok(SeplLexer *lex, SeplTokenT type) {
     SeplToken tok;
@@ -384,6 +437,29 @@ invalid_num:
     tok.type = SEPL_TOK_ERROR;
     tok.start = "Invalid number";
     tok.line = lex->line;
+    return tok;
+}
+
+SEPL_API SeplToken sepl__make_string(SeplLexer *lex) {
+    SeplToken tok;
+    tok.type = SEPL_TOK_STRING;
+    tok.start = lex->source - 1;
+    tok.end = lex->source;
+
+    while (*tok.end != '"' && *tok.end != '\0') {
+        if (*tok.end++ == '\\') {
+            tok.end++;
+        }
+    }
+
+    if (*tok.end == '\0') {
+        tok.type = SEPL_TOK_ERROR;
+        tok.start = "Unexpected EOF while parsing string";
+        tok.line = lex->line;
+        return tok;
+    }
+
+    lex->source = ++tok.end;
     return tok;
 }
 
@@ -505,6 +581,8 @@ SEPL_API SeplToken next_token(SeplLexer *lex) {
             return sepl__make_tok(lex, SEPL_TOK_VAR);
         case '$':
             return sepl__make_tok(lex, SEPL_TOK_FUNC);
+        case '"':
+            return sepl__make_string(lex);
 
         case 'e':
             return sepl__make_keyword(lex, "else", SEPL_TOK_ELSE);
@@ -591,6 +669,13 @@ SEPL_LIB SeplValue sepl_val_number(double vnum) {
     SeplValue r;
     r.type = SEPL_VAL_NUM;
     r.as.num = vnum;
+    return r;
+}
+
+SEPL_LIB SeplValue sepl_val_str(char *str) {
+    SeplValue r;
+    r.type = SEPL_VAL_STR;
+    r.as.obj = str;
     return r;
 }
 
@@ -684,6 +769,15 @@ SEPL_LIB void sepl_mod_init(SeplModule *mod, SeplError *e, SeplEnv env) {
     }
     for (i = 0; i < mod->esize; i++) {
         sepl_mod_val(mod, SEPL_NONE, e);
+    }
+}
+
+SEPL_LIB void sepl_mod_cleanup(SeplModule *mod, SeplEnv env) {
+    sepl_size i;
+    for (i = mod->vpos; i-- > env.predef_len;) {
+        SeplValue v = mod->values[i];
+        if (sepl_val_isobj(v))
+            env.free(v);
     }
 }
 
@@ -893,6 +987,12 @@ SEPL_LIB SeplValue sepl_mod_step(SeplModule *mod, SeplError *e, SeplEnv env) {
             sepl__pushv(sepl_val_number(v));
             break;
         }
+        case SEPL_BC_STR: {
+            sepl_size len = sepl__rdsz();
+            sepl__pushv(sepl_val_str((char*)(mod->bytes + mod->pc)));
+            mod->pc += len + 1;
+            break;
+        }
         case SEPL_BC_SCOPE: {
             sepl_size end_pos = sepl__rdsz();
             sepl__pushv(sepl_val_scope(end_pos));
@@ -1026,6 +1126,7 @@ SEPL_LIB SeplValue sepl_mod_getexport(SeplModule *mod, SeplEnv env,
     return SEPL_NONE;
 }
 
+
 typedef struct {
     SeplLexer lex;
     SeplModule *mod;
@@ -1067,6 +1168,7 @@ typedef struct {
 } SeplParseRule;
 
 SEPL_API void sepl__number(SeplCompiler *com);
+SEPL_API void sepl__string(SeplCompiler *com);
 SEPL_API void sepl__none(SeplCompiler *com);
 
 SEPL_API void sepl__unary(SeplCompiler *com);
@@ -1097,6 +1199,7 @@ SEPL_API SeplParseRule rules[SEPL_TOK_EOF + 1] = {
     {sepl__variable, SEPL_NULL, SEPL_PRE_ASSIGN}, /* SEPL_TOK_VAR */
     {sepl__func, SEPL_NULL, SEPL_PRE_ASSIGN},     /* SEPL_TOK_FUNC */
     {sepl__none, SEPL_NULL, SEPL_PRE_ASSIGN},     /* SEPL_TOK_NONE */
+    {sepl__string, SEPL_NULL, SEPL_PRE_ASSIGN},   /* SEPL_TOK_STRING */
 
     {SEPL_NULL, sepl__binary, SEPL_PRE_ASSIGN}, /* SEPL_TOK_ASSIGN */
 
@@ -1178,7 +1281,7 @@ SEPL_API SeplParseRule rules[SEPL_TOK_EOF + 1] = {
         }                                                    \
     } while (0);
 
-SEPL_API void parse(SeplCompiler *com, Precedence pre) {
+SEPL_API void sepl__parse(SeplCompiler *com, Precedence pre) {
     SeplToken tok = sepl__currtok(com);
 
     SeplParseRule *rule = sepl__getrule(tok);
@@ -1326,6 +1429,26 @@ SEPL_API void sepl__number(SeplCompiler *com) {
     sepl__check_vlimit(com);
 }
 
+SEPL_API void sepl__string(SeplCompiler *com) {
+    SeplToken cur = sepl__currtok(com);
+    sepl_size i, slen = cur.end - cur.start - 2;
+    unsigned char *wlen;
+
+    sepl__writebyte(com, SEPL_BC_STR);
+    wlen = sepl__writeplaceholder(com);
+    for (i = 0; i < slen; i++) {
+        char c = cur.start[i + 1];
+        if (c == '\\')
+            c = sepl_to_special(cur.start[++i + 1]);
+        sepl__writebyte(com, (unsigned char)c);
+    }
+    sepl__writebyte(com, '\0');
+    *(sepl_size *)wlen = (com->mod->bytes + com->mod->bpos) - wlen - 4 - 1;
+
+    com->scope_size++;
+    sepl__check_vlimit(com);
+}
+
 SEPL_API void sepl__none(SeplCompiler *com) {
     sepl__writebyte(com, SEPL_BC_NONE);
     com->scope_size++;
@@ -1336,7 +1459,7 @@ SEPL_API void sepl__unary(SeplCompiler *com) {
     SeplToken op = sepl__currtok(com);
 
     sepl__nexttok(com);
-    parse(com, SEPL_PRE_UNARY);
+    sepl__parse(com, SEPL_PRE_UNARY);
     sepl__check(com);
 
     switch (op.type) {
@@ -1356,7 +1479,7 @@ SEPL_API void sepl__binary(SeplCompiler *com) {
     SeplParseRule *rule = sepl__getrule(op);
 
     sepl__nexttok(com);
-    parse(com, rule->pre + 1);
+    sepl__parse(com, rule->pre + 1);
     sepl__check(com);
     com->scope_size--;
 
@@ -1406,7 +1529,7 @@ SEPL_API void sepl__and(SeplCompiler *com) {
     com->scope_size--;
 
     sepl__nexttok(com);
-    parse(com, SEPL_PRE_AND + 1);
+    sepl__parse(com, SEPL_PRE_AND + 1);
 
     if (sepl__peektok(com).type != SEPL_TOK_AND) {
         unsigned char *jfalse, *jtrue;
@@ -1443,7 +1566,7 @@ SEPL_API void sepl__or(SeplCompiler *com) {
     sepl__setpholder(com, next);
 
     sepl__nexttok(com);
-    parse(com, SEPL_PRE_OR + 1);
+    sepl__parse(com, SEPL_PRE_OR + 1);
 
     if (sepl__peektok(com).type != SEPL_TOK_OR) {
         unsigned char *jfalse, *jtrue;
@@ -1616,7 +1739,7 @@ SEPL_API void sepl__grouping(SeplCompiler *com) {
     sepl__check_tok(com, SEPL_TOK_RPAREN);
 }
 
-SEPL_API void sepl__expr(SeplCompiler *com) { parse(com, SEPL_PRE_EXPR); }
+SEPL_API void sepl__expr(SeplCompiler *com) { sepl__parse(com, SEPL_PRE_EXPR); }
 
 SEPL_API void sepl__return(SeplCompiler *com) {
     sepl_size old_ss = com->scope_size;

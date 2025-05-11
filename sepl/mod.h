@@ -16,6 +16,7 @@ typedef enum {
 
     SEPL_BC_NONE,
     SEPL_BC_CONST,
+    SEPL_BC_STR,
     SEPL_BC_SCOPE,
     SEPL_BC_FUNC,
 
@@ -66,11 +67,11 @@ SEPL_LIB sepl_size sepl_mod_bcsize(SeplModule *mod, sepl_size s, SeplError *e);
 SEPL_LIB sepl_size sepl_mod_val(SeplModule *mod, SeplValue v, SeplError *e);
 
 SEPL_LIB void sepl_mod_init(SeplModule *mod, SeplError *e, SeplEnv env);
+SEPL_LIB void sepl_mod_cleanup(SeplModule *mod, SeplEnv env);
 SEPL_LIB SeplValue sepl_mod_step(SeplModule *mod, SeplError *e, SeplEnv env);
 SEPL_LIB SeplValue sepl_mod_exec(SeplModule *mod, SeplError *e, SeplEnv env);
 SEPL_LIB void sepl_mod_initfunc(SeplModule *mod, SeplError *e, SeplValue func,
                                 SeplArgs args);
-
 SEPL_LIB SeplValue sepl_mod_getexport(SeplModule *mod, SeplEnv env,
                                       const char *key);
 

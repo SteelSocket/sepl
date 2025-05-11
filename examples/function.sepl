@@ -1,4 +1,5 @@
 @operations = $(a, b) {
+    print("Performing arithmetic operations: ");
     print(a + b);
     print(a - b);
     print(a * b);

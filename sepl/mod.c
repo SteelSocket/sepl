@@ -71,6 +71,15 @@ SEPL_LIB void sepl_mod_init(SeplModule *mod, SeplError *e, SeplEnv env) {
     }
 }
 
+SEPL_LIB void sepl_mod_cleanup(SeplModule *mod, SeplEnv env) {
+    sepl_size i;
+    for (i = mod->vpos; i-- > env.predef_len;) {
+        SeplValue v = mod->values[i];
+        if (sepl_val_isobj(v))
+            env.free(v);
+    }
+}
+
 SEPL_API double sepl__todbl(SeplError *err, SeplValue v) {
     if (sepl_val_isnum(v)) {
         return v.as.num;
@@ -275,6 +284,12 @@ SEPL_LIB SeplValue sepl_mod_step(SeplModule *mod, SeplError *e, SeplEnv env) {
         case SEPL_BC_CONST: {
             double v = sepl__rddbl();
             sepl__pushv(sepl_val_number(v));
+            break;
+        }
+        case SEPL_BC_STR: {
+            sepl_size len = sepl__rdsz();
+            sepl__pushv(sepl_val_str((char*)(mod->bytes + mod->pc)));
+            mod->pc += len + 1;
             break;
         }
         case SEPL_BC_SCOPE: {

@@ -12,6 +12,7 @@ typedef enum {
     SEPL_TOK_VAR,
     SEPL_TOK_FUNC,
     SEPL_TOK_NONE,
+    SEPL_TOK_STRING,
 
     SEPL_TOK_ASSIGN,
 
@@ -64,6 +65,7 @@ SEPL_LIB char sepl_is_alpha(char c);
 SEPL_LIB char sepl_is_delim(char c);
 SEPL_LIB char sepl_is_identifier(char c);
 SEPL_LIB int sepl_to_digit(char c);
+SEPL_LIB char sepl_to_special(char c);
 
 SEPL_LIB SeplLexer sepl_lex_init(const char *source);
 SEPL_LIB SeplToken sepl_lex_next(SeplLexer *lex);

@@ -1,17 +1,21 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #define SEPL_IMPLEMENTATION
 #include "../sepl.h"
 
 #include "tests.h"
 
+#define str_eq(s1, s2) (strcmp(s1, s2) == 0)
+
 void conversions() {
     assert(sepl_val_number(3.14).as.num == 3.14);
     assert(sepl_val_object(NULL).as.obj == NULL);
     char *str = "Hello";
     assert(sepl_val_object(str).as.obj == str);
+    assert(str_eq(sepl_val_str("Hello").as.obj, "Hello"));
 }
 
 void type_check_null() {
