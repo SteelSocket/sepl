@@ -1,16 +1,16 @@
 /*
  * zlib License
- * 
+ *
  * (C) 2025 G.Nithesh (SteelSocket)
- * 
+ *
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
  * arising from the use of this software.
- * 
+ *
  * Permission is granted to anyone to use this software for any purpose,
  * including commercial applications, and to alter it and redistribute it
  * freely, subject to the following restrictions:
- * 
+ *
  * 1. The origin of this software must not be misrepresented; you must not
  *    claim that you wrote the original software. If you use this software
  *    in a product, an acknowledgment in the product documentation would be
@@ -23,11 +23,9 @@
 #ifndef SEPL_LIBRARY
 #define SEPL_LIBRARY
 
-
 #ifdef __cplusplus
 extern "C" {
 #endif
-
 
 #define sepl__static_assert(cond, name) \
     typedef char sepl__assert_##name[(cond) ? 1 : -1]
@@ -51,8 +49,6 @@ sepl__static_assert(sepl__is_unsigned(sepl_size), is_unsigned);
 #ifndef SEPL_API
 #define SEPL_API static
 #endif
-
-
 
 typedef enum {
     SEPL_TOK_ERROR,
@@ -123,8 +119,6 @@ SEPL_LIB SeplToken sepl_lex_next(SeplLexer *lex);
 SEPL_LIB SeplToken sepl_lex_peek(SeplLexer lex);
 SEPL_LIB double sepl_lex_num(SeplToken tok);
 
-
-
 typedef enum {
     SEPL_ERR_OK,
 
@@ -151,7 +145,7 @@ typedef enum {
     SEPL_ERR_BC,        /* undefined bytecode */
     SEPL_ERR_FUNC_RET,  /* returning a sepl function */
     SEPL_ERR_FUNC_CALL, /* calling a non function */
-    SEPL_ERR_REFUPV,    /* set reference to upvalue */
+    SEPL_ERR_REFMOVE,   /* moving a reference to another variable */
     SEPL_ERR_OPER       /* invalid operations on value */
 } SeplErrorCode;
 
@@ -187,8 +181,6 @@ typedef struct {
     (sepl_err_new(e, SEPL_ERR_UPTOK), (e)->info.tokd.up = utok, \
      (e)->info.tokd.exp = etok)
 #define sepl_err_iden(e, code, i) (sepl_err_new(e, code), (e)->info.iden = i)
-
-
 
 typedef struct SeplValue SeplValue;
 
@@ -246,8 +238,6 @@ SEPL_LIB SeplValue sepl_val_cfunc(sepl_c_func cfunc);
 SEPL_LIB SeplValue sepl_val_object(void *vobj);
 SEPL_LIB SeplValue sepl_val_type(void *vobj, sepl_size custom_id);
 
-
-
 typedef struct {
     const char *key;
     SeplValue value;
@@ -259,8 +249,6 @@ typedef struct {
     SeplValuePair *predef;
     sepl_size predef_len;
 } SeplEnv;
-
-
 
 typedef enum {
     SEPL_BC_RETURN,
@@ -331,8 +319,6 @@ SEPL_LIB void sepl_mod_initfunc(SeplModule *mod, SeplError *e, SeplValue func,
 SEPL_LIB SeplValue sepl_mod_getexport(SeplModule *mod, SeplEnv env,
                                       const char *key);
 
-
-
 SEPL_LIB SeplError sepl_com_module(const char *source, SeplModule *mod,
                                    SeplEnv env);
 SEPL_LIB SeplError sepl_com_block(const char *source, SeplModule *mod,
@@ -345,8 +331,6 @@ SEPL_LIB SeplError sepl_com_expr(const char *source, SeplModule *mod,
 #endif
 
 #ifdef SEPL_IMPLEMENTATION
-
-
 
 SEPL_LIB char sepl_is_digit(char c) { return c >= '0' && c <= '9'; }
 
@@ -928,10 +912,9 @@ SEPL_LIB SeplValue sepl_mod_step(SeplModule *mod, SeplError *e, SeplEnv env) {
             SeplValue peek = sepl__peekv(0);
             sepl_size offset = mod->vpos - i;
 
-            /* Do not set the obj to its own reference */
-            if (sepl_val_isref(peek) &&
-                (SeplValue *)peek.as.obj == mod->values + offset) {
-                sepl__popv();
+            /* Reference is assign to another variable */
+            if (sepl_val_isref(peek)) {
+                sepl_err_new(e, SEPL_ERR_REFMOVE);
                 break;
             }
             if (sepl_val_isobj(mod->values[offset]))
@@ -956,9 +939,9 @@ SEPL_LIB SeplValue sepl_mod_step(SeplModule *mod, SeplError *e, SeplEnv env) {
             sepl_size offset = sepl__rdsz();
             SeplValue peek = sepl__peekv(0);
 
-            /* Do not set the obj to its own reference */
+            /* Reference is assign to another variable */
             if (sepl_val_isref(peek)) {
-                sepl_err_new(e, SEPL_ERR_REFUPV);
+                sepl_err_new(e, SEPL_ERR_REFMOVE);
                 break;
             }
             if (sepl_val_isobj(mod->values[offset]))
@@ -989,7 +972,7 @@ SEPL_LIB SeplValue sepl_mod_step(SeplModule *mod, SeplError *e, SeplEnv env) {
         }
         case SEPL_BC_STR: {
             sepl_size len = sepl__rdsz();
-            sepl__pushv(sepl_val_str((char*)(mod->bytes + mod->pc)));
+            sepl__pushv(sepl_val_str((char *)(mod->bytes + mod->pc)));
             mod->pc += len + 1;
             break;
         }
@@ -1126,6 +1109,10 @@ SEPL_LIB SeplValue sepl_mod_getexport(SeplModule *mod, SeplEnv env,
     return SEPL_NONE;
 }
 
+#define SEPL__ASSIGN_NONE 0
+#define SEPL__ASSIGN_LOC 1
+#define SEPL__ASSIGN_UPS 2
+#define SEPL__ASSIGN_UPV 3
 
 typedef struct {
     SeplLexer lex;
@@ -1140,9 +1127,8 @@ typedef struct {
     char block_ret;
     char inner_ret;
     char func_block;
-    /* 0 - none, 1 - local, 2 - upvalue */
+    /* 0 - no assign, 1 - local, 2 - upvalue (scope), 3 - upvalue (function) */
     char assign_type;
-
 } SeplCompiler;
 
 typedef void (*sepl_parse_func)(SeplCompiler *);
@@ -1360,15 +1346,16 @@ SEPL_API char sepl__varcmp(const char *v, const char *i) {
 SEPL_API sepl_size sepl__findvar(SeplCompiler *com, SeplToken iden,
                                  sepl_size *upv) {
     sepl_size pos;
-    *upv = 0;
+    *upv = SEPL__ASSIGN_LOC;
 
     for (pos = com->mod->vpos; pos-- != 0;) {
         char *v_start, *i_start;
 
         if (sepl_val_isscp(com->mod->values[pos])) {
-            (*upv)++;
+            *upv = SEPL__ASSIGN_UPS;
             continue;
         } else if (sepl_val_isfun(com->mod->values[pos])) {
+            *upv = SEPL__ASSIGN_UPV;
             continue;
         }
 
@@ -1376,17 +1363,6 @@ SEPL_API sepl_size sepl__findvar(SeplCompiler *com, SeplToken iden,
         i_start = (char *)iden.start;
 
         if (sepl__varcmp(v_start, i_start)) {
-            if (*upv == 1) {
-                sepl_size tmp = pos;
-                /* Reset upvalue if the identifier is a function parameter */
-                while (tmp-- != 0) {
-                    if (sepl_val_isscp(com->mod->values[tmp])) {
-                        break;
-                    } else if (sepl_val_isfun(com->mod->values[tmp])) {
-                        *upv = 0;
-                    }
-                }
-            }
             return pos;
         }
     }
@@ -1597,11 +1573,11 @@ SEPL_API void sepl__assign(SeplCompiler *com, sepl_size index,
 
     sepl__nexttok(com);
 
-    com->assign_type = !!upvalue + 1;
+    com->assign_type = upvalue;
     sepl__expr(com);
     com->assign_type = 0;
 
-    if (!upvalue)
+    if (upvalue <= SEPL__ASSIGN_UPS)
         sepl__writesized(com, SEPL_BC_SET, (com->scope_size - index));
     else
         sepl__writesized(com, SEPL_BC_SET_UP, index);
@@ -1629,7 +1605,7 @@ SEPL_API void sepl__identifier(SeplCompiler *com) {
         sepl__nexttok(com);
         sepl__assign(com, index, upvalue);
     } else {
-        if (!upvalue)
+        if (upvalue <= SEPL__ASSIGN_UPS)
             sepl__writesized(com, SEPL_BC_GET, (com->scope_size - index));
         else
             sepl__writesized(com, SEPL_BC_GET_UP, index);
@@ -1640,6 +1616,7 @@ SEPL_API void sepl__identifier(SeplCompiler *com) {
 
 SEPL_API void sepl__variable(SeplCompiler *com) {
     SeplToken iden = sepl__nexttok(com);
+    sepl_size oss = com->scope_size;
     sepl__check_tok(com, SEPL_TOK_IDENTIFIER);
 
     /* If the identifier already exists within the current scope */
@@ -1653,6 +1630,13 @@ SEPL_API void sepl__variable(SeplCompiler *com) {
 
     sepl__writebyte(com, SEPL_BC_NONE);
     sepl__identifier(com);
+
+    /* Encountered Get instead of Set */
+    if (com->scope_size - oss == 2) {
+        /* Remove Get instruction */
+        com->mod->bpos -= 1 + sizeof(sepl_size);
+        com->scope_size--;
+    }
 }
 
 SEPL_API void sepl__params(SeplCompiler *com, unsigned char *pcount) {
@@ -1683,7 +1667,7 @@ SEPL_API void sepl__func(SeplCompiler *com) {
         sepl_err_new(&com->error, SEPL_ERR_CLOSURE);
         return;
     }
-    if (com->assign_type == 2) {
+    if (com->assign_type >= SEPL__ASSIGN_UPS) {
         sepl_err_new(&com->error, SEPL_ERR_FUNC_UPV);
         return;
     }

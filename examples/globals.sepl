@@ -1,0 +1,22 @@
+@msg = "Please enter base and exponent";
+@b;
+@e;
+
+@pow = $() {
+    @a = e;
+    @p = 1;
+    while (a != 0) {
+        p = b * p;
+        a = a - 1;
+    }
+    return p;
+};
+
+main = $() {
+    print(msg);
+    b = input();
+    e = input();
+    print("The power of", b, "to", e, "is", pow());
+
+    return 0;
+};

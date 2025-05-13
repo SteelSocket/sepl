@@ -7,6 +7,12 @@
 #include "mod.h"
 #include "val.h"
 
+#define SEPL__ASSIGN_NONE 0
+#define SEPL__ASSIGN_LOC 1
+#define SEPL__ASSIGN_UPS 2
+#define SEPL__ASSIGN_UPV 3
+
+
 typedef struct {
     SeplLexer lex;
     SeplModule *mod;
@@ -20,9 +26,8 @@ typedef struct {
     char block_ret;
     char inner_ret;
     char func_block;
-    /* 0 - none, 1 - local, 2 - upvalue */
+    /* 0 - no assign, 1 - local, 2 - upvalue (scope), 3 - upvalue (function) */
     char assign_type;
-
 } SeplCompiler;
 
 typedef void (*sepl_parse_func)(SeplCompiler *);
@@ -240,15 +245,16 @@ SEPL_API char sepl__varcmp(const char *v, const char *i) {
 SEPL_API sepl_size sepl__findvar(SeplCompiler *com, SeplToken iden,
                                  sepl_size *upv) {
     sepl_size pos;
-    *upv = 0;
+    *upv = SEPL__ASSIGN_LOC;
 
     for (pos = com->mod->vpos; pos-- != 0;) {
         char *v_start, *i_start;
 
         if (sepl_val_isscp(com->mod->values[pos])) {
-            (*upv)++;
+            *upv = SEPL__ASSIGN_UPS;
             continue;
         } else if (sepl_val_isfun(com->mod->values[pos])) {
+            *upv = SEPL__ASSIGN_UPV;
             continue;
         }
 
@@ -256,17 +262,6 @@ SEPL_API sepl_size sepl__findvar(SeplCompiler *com, SeplToken iden,
         i_start = (char *)iden.start;
 
         if (sepl__varcmp(v_start, i_start)) {
-            if (*upv == 1) {
-                sepl_size tmp = pos;
-                /* Reset upvalue if the identifier is a function parameter */
-                while (tmp-- != 0) {
-                    if (sepl_val_isscp(com->mod->values[tmp])) {
-                        break;
-                    } else if (sepl_val_isfun(com->mod->values[tmp])) {
-                        *upv = 0;
-                    }
-                }
-            }
             return pos;
         }
     }
@@ -477,11 +472,11 @@ SEPL_API void sepl__assign(SeplCompiler *com, sepl_size index,
 
     sepl__nexttok(com);
 
-    com->assign_type = !!upvalue + 1;
+    com->assign_type = upvalue;
     sepl__expr(com);
     com->assign_type = 0;
 
-    if (!upvalue)
+    if (upvalue <= SEPL__ASSIGN_UPS)
         sepl__writesized(com, SEPL_BC_SET, (com->scope_size - index));
     else
         sepl__writesized(com, SEPL_BC_SET_UP, index);
@@ -509,7 +504,7 @@ SEPL_API void sepl__identifier(SeplCompiler *com) {
         sepl__nexttok(com);
         sepl__assign(com, index, upvalue);
     } else {
-        if (!upvalue)
+        if (upvalue <= SEPL__ASSIGN_UPS)
             sepl__writesized(com, SEPL_BC_GET, (com->scope_size - index));
         else
             sepl__writesized(com, SEPL_BC_GET_UP, index);
@@ -520,6 +515,7 @@ SEPL_API void sepl__identifier(SeplCompiler *com) {
 
 SEPL_API void sepl__variable(SeplCompiler *com) {
     SeplToken iden = sepl__nexttok(com);
+    sepl_size oss = com->scope_size;
     sepl__check_tok(com, SEPL_TOK_IDENTIFIER);
 
     /* If the identifier already exists within the current scope */
@@ -533,6 +529,13 @@ SEPL_API void sepl__variable(SeplCompiler *com) {
 
     sepl__writebyte(com, SEPL_BC_NONE);
     sepl__identifier(com);
+
+    /* Encountered Get instead of Set */
+    if (com->scope_size - oss == 2) {
+        /* Remove Get instruction */
+        com->mod->bpos -= 1 + sizeof(sepl_size);
+        com->scope_size--;
+    }
 }
 
 SEPL_API void sepl__params(SeplCompiler *com, unsigned char *pcount) {
@@ -563,7 +566,7 @@ SEPL_API void sepl__func(SeplCompiler *com) {
         sepl_err_new(&com->error, SEPL_ERR_CLOSURE);
         return;
     }
-    if (com->assign_type == 2) {
+    if (com->assign_type >= SEPL__ASSIGN_UPS) {
         sepl_err_new(&com->error, SEPL_ERR_FUNC_UPV);
         return;
     }

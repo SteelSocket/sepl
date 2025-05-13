@@ -30,7 +30,7 @@ typedef enum {
     SEPL_ERR_BC,        /* undefined bytecode */
     SEPL_ERR_FUNC_RET,  /* returning a sepl function */
     SEPL_ERR_FUNC_CALL, /* calling a non function */
-    SEPL_ERR_REFUPV,    /* set reference to upvalue */
+    SEPL_ERR_REFMOVE,   /* moving a reference to another variable */
     SEPL_ERR_OPER       /* invalid operations on value */
 } SeplErrorCode;
 

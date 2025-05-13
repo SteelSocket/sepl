@@ -185,8 +185,8 @@ void print_error(SeplError error) {
             printf("Attempting to call a non function\n");
             break;
 
-        case SEPL_ERR_REFUPV:
-            printf("Attempting to set a reference to a upvalue\n");
+        case SEPL_ERR_REFMOVE:
+            printf("Attempting to set a reference to a variable\n");
             break;
     }
 }

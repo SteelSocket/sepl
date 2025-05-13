@@ -227,10 +227,9 @@ SEPL_LIB SeplValue sepl_mod_step(SeplModule *mod, SeplError *e, SeplEnv env) {
             SeplValue peek = sepl__peekv(0);
             sepl_size offset = mod->vpos - i;
 
-            /* Do not set the obj to its own reference */
-            if (sepl_val_isref(peek) &&
-                (SeplValue *)peek.as.obj == mod->values + offset) {
-                sepl__popv();
+            /* Reference is assign to another variable */
+            if (sepl_val_isref(peek)) {
+                sepl_err_new(e, SEPL_ERR_REFMOVE);
                 break;
             }
             if (sepl_val_isobj(mod->values[offset]))
@@ -255,9 +254,9 @@ SEPL_LIB SeplValue sepl_mod_step(SeplModule *mod, SeplError *e, SeplEnv env) {
             sepl_size offset = sepl__rdsz();
             SeplValue peek = sepl__peekv(0);
 
-            /* Do not set the obj to its own reference */
+            /* Reference is assign to another variable */
             if (sepl_val_isref(peek)) {
-                sepl_err_new(e, SEPL_ERR_REFUPV);
+                sepl_err_new(e, SEPL_ERR_REFMOVE);
                 break;
             }
             if (sepl_val_isobj(mod->values[offset]))
@@ -288,7 +287,7 @@ SEPL_LIB SeplValue sepl_mod_step(SeplModule *mod, SeplError *e, SeplEnv env) {
         }
         case SEPL_BC_STR: {
             sepl_size len = sepl__rdsz();
-            sepl__pushv(sepl_val_str((char*)(mod->bytes + mod->pc)));
+            sepl__pushv(sepl_val_str((char *)(mod->bytes + mod->pc)));
             mod->pc += len + 1;
             break;
         }
