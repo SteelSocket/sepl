@@ -9,29 +9,33 @@
 #include "tests.h"
 
 void single_var() {
+    // basic variable assignment
     assert_sepl(
         {
             @a = 1;
             return a;
         },
-        1);  // basic variable assignment
+        1);
 
+    // reassignment of variable
     assert_sepl(
         {
             @a = 1;
             a = 2;
             return a;
         },
-        2);  // reassignment of variable
+        2);
 
+    // increment variable using itself
     assert_sepl(
         {
             @a = 1;
             a = a + 1;
             return a;
         },
-        2);  // increment variable using itself
+        2);
 
+    // inner shadowed variable doesn't affect outer
     assert_sepl(
         {
             @a = 1;
@@ -40,8 +44,9 @@ void single_var() {
             };
             return a;
         },
-        1);  // inner shadowed variable doesn't affect outer
+        1);
 
+    // inner block modifies outer variable
     assert_sepl(
         {
             @a = 1;
@@ -50,105 +55,98 @@ void single_var() {
             };
             return a;
         },
-        2);  // inner block modifies outer variable
+        2);
 
+    // assigning empty block
     assert_sepl_none({
         @a = {};
         return a;
-    });  // assigning empty block
+    });
 
+    // variable set to NONE
     assert_sepl_none({
         @a = NONE;
         return a;
-    });  // variable set to NONE
+    });
 
+    // variable set to none after initialization
     assert_sepl_none({
         @a = 1;
         a = NONE;
         return a;
-    });  // variable set to none after initialization
+    });
 
-    assert_sepl({
-        @a = { return 1;};
+    // variable set to none implicitly 
+    assert_sepl_none({
+        @a;
         return a;
-}, 1); // assign returned block value to variable
+    });
 
-    assert_sepl({
-    @a = { @a = 1;
-    return a;};
-        return a;
-    }, 1); // inner variable assigned and returned to outer variable
-    }
+    // assign returned block value to variable
+    assert_str("{ @a = { return 1;}; return a; }", 1);
 
-    void var_conditional() {
-        assert_sepl(
-            {
-                @a = 1;
-                if (0) {
-                    a = 2;
-                }
-                return a;
-            },
-            1);  // conditional assigned not executed
+    // inner variable assigned and returned to outer variable
+    assert_sepl("{ @a = { @a = 1; return a;}; return a; }", 1);
+}
 
-        assert_sepl(
-            {
-                @a = 1;
-                if (1) {
-                    a = 2;
-                }
-                return a;
-            },
-            2);  // conditional assignment executed
-    }
-
-    void var_assign_block() {
-    assert_sepl({
-        @a = { @b = 10;
+void var_conditional() {
+    // conditional assigned not executed
+    assert_sepl(
         {
-            b = b + 1;
-        };
-        return b;
-        };
-        return a;
-    }, 11); // nested block modifies inner var, returns result
+            @a = 1;
+            if (0) {
+                a = 2;
+            }
+            return a;
+        },
+        1);
 
-    assert_sepl({
-    @a = { @b = 10;
-    while (b != 20) {
-        b = b + 1;
-    }
-    return b;
-        };
-        return a;
-    }, 20); // while loop updates variable within block, returns result
-    }
+    // conditional assignment executed
+    assert_sepl(
+        {
+            @a = 1;
+            if (1) {
+                a = 2;
+            }
+            return a;
+        },
+        2);
+}
 
-    void multi_var() {
-        assert_sepl(
-            {
-                @a = 2;
-                @b = a + 2;
-                return b;
-            },
-            4);  // var depends on another var
+void var_assign_block() {
+    // nested block modifies inner var, returns result
+    assert_str("{ @a = { @b = 10; { b = b + 1; }; return b; }; return a; }",
+               11);
 
-        assert_sepl(
-            {
-                @a = 2;
-                @b = 5;
-                b = b + a;
-                return b;
-            },
-            7);  // multiple vars and one modifies using another
+    // while loop updates variable within block, returns result
+    assert_str(
+        "{ @a = { @b = 10; while (b != 20) { b = b + 1; } return b; }; return "
+        "a; }",
+        20);
+}
 
-    assert_sepl({
-        @a = 2;
-        @b = { @c = a + 3;
-        return c * 2;
-        };
-        return b;
-    }, 10); // nested variable operations in block
-    }
+void multi_var() {
+    // var depends on another var
+    assert_sepl(
+        {
+            @a = 2;
+            @b = a + 2;
+            return b;
+        },
+        4);
 
-    SEPL_TEST_GROUP(single_var, var_conditional, var_assign_block, multi_var);
+    // multiple vars and one modifies using another
+    assert_sepl(
+        {
+            @a = 2;
+            @b = 5;
+            b = b + a;
+            return b;
+        },
+        7);
+
+    // nested variable operations in block
+    assert_str("{ @a = 2; @b = { @c = a + 3; return c * 2; }; return b; }", 10);
+}
+
+SEPL_TEST_GROUP(single_var, var_conditional, var_assign_block, multi_var);
