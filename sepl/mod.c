@@ -13,7 +13,7 @@ SEPL_LIB SeplModule sepl_mod_new(unsigned char bytes[], sepl_size bsize,
     return mod;
 }
 
-SEPL_LIB sepl_size sepl_mod_bc(SeplModule *mod, SeplByteCode bc, SeplError *e) {
+SEPL_LIB sepl_size sepl_mod_bc(SeplModule *mod, SeplBC bc, SeplError *e) {
     if (mod->bpos + 1 > mod->bsize) {
         sepl_err_new(e, SEPL_ERR_BOVERFLOW);
         return 0;
@@ -128,7 +128,7 @@ SEPL_LIB SeplValue sepl_mod_step(SeplModule *mod, SeplError *e, SeplEnv env) {
         sepl__pushv(sepl_val_number(d1 op d2));                  \
     } while (0)
 
-    SeplByteCode bc = mod->bytes[mod->pc++];
+    SeplBC bc = (SeplBC)mod->bytes[mod->pc++];
 
     switch (bc) {
         case SEPL_BC_RETURN: {

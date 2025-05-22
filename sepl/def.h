@@ -13,7 +13,11 @@ sepl__static_assert(sepl__is_unsigned(sepl_size), is_unsigned);
 #endif
 
 #ifndef SEPL_NULL
+#ifdef __cplusplus
+#define SEPL_NULL nullptr
+#else
 #define SEPL_NULL ((void *)0)
+#endif
 #endif
 
 #ifndef SEPL_LIB

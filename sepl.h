@@ -1,16 +1,16 @@
 /*
  * zlib License
- *
+ * 
  * (C) 2025 G.Nithesh (SteelSocket)
- *
+ * 
  * This software is provided 'as-is', without any express or implied
  * warranty.  In no event will the authors be held liable for any damages
  * arising from the use of this software.
- *
+ * 
  * Permission is granted to anyone to use this software for any purpose,
  * including commercial applications, and to alter it and redistribute it
  * freely, subject to the following restrictions:
- *
+ * 
  * 1. The origin of this software must not be misrepresented; you must not
  *    claim that you wrote the original software. If you use this software
  *    in a product, an acknowledgment in the product documentation would be
@@ -23,9 +23,11 @@
 #ifndef SEPL_LIBRARY
 #define SEPL_LIBRARY
 
+
 #ifdef __cplusplus
 extern "C" {
 #endif
+
 
 #define sepl__static_assert(cond, name) \
     typedef char sepl__assert_##name[(cond) ? 1 : -1]
@@ -39,7 +41,11 @@ sepl__static_assert(sepl__is_unsigned(sepl_size), is_unsigned);
 #endif
 
 #ifndef SEPL_NULL
+#ifdef __cplusplus
+#define SEPL_NULL nullptr
+#else
 #define SEPL_NULL ((void *)0)
+#endif
 #endif
 
 #ifndef SEPL_LIB
@@ -49,6 +55,8 @@ sepl__static_assert(sepl__is_unsigned(sepl_size), is_unsigned);
 #ifndef SEPL_API
 #define SEPL_API static
 #endif
+
+
 
 typedef enum {
     SEPL_TOK_ERROR,
@@ -119,6 +127,8 @@ SEPL_LIB SeplToken sepl_lex_next(SeplLexer *lex);
 SEPL_LIB SeplToken sepl_lex_peek(SeplLexer lex);
 SEPL_LIB double sepl_lex_num(SeplToken tok);
 
+
+
 typedef enum {
     SEPL_ERR_OK,
 
@@ -182,6 +192,8 @@ typedef struct {
      (e)->info.tokd.exp = etok)
 #define sepl_err_iden(e, code, i) (sepl_err_new(e, code), (e)->info.iden = i)
 
+
+
 typedef struct SeplValue SeplValue;
 
 typedef enum {
@@ -238,6 +250,8 @@ SEPL_LIB SeplValue sepl_val_cfunc(sepl_c_func cfunc);
 SEPL_LIB SeplValue sepl_val_object(void *vobj);
 SEPL_LIB SeplValue sepl_val_type(void *vobj, sepl_size custom_id);
 
+
+
 typedef struct {
     const char *key;
     SeplValue value;
@@ -249,6 +263,8 @@ typedef struct {
     SeplValuePair *predef;
     sepl_size predef_len;
 } SeplEnv;
+
+
 
 typedef enum {
     SEPL_BC_RETURN,
@@ -286,7 +302,7 @@ typedef enum {
     SEPL_BC_GTE,
     SEPL_BC_EQ,
     SEPL_BC_NEQ
-} SeplByteCode;
+} SeplBC;
 
 typedef struct {
     unsigned char *bytes;
@@ -305,7 +321,7 @@ typedef struct {
 
 SEPL_LIB SeplModule sepl_mod_new(unsigned char bytes[], sepl_size bsize,
                                  SeplValue values[], sepl_size vsize);
-SEPL_LIB sepl_size sepl_mod_bc(SeplModule *mod, SeplByteCode bc, SeplError *e);
+SEPL_LIB sepl_size sepl_mod_bc(SeplModule *mod, SeplBC bc, SeplError *e);
 SEPL_LIB sepl_size sepl_mod_bcnum(SeplModule *mod, double n, SeplError *e);
 SEPL_LIB sepl_size sepl_mod_bcsize(SeplModule *mod, sepl_size s, SeplError *e);
 SEPL_LIB sepl_size sepl_mod_val(SeplModule *mod, SeplValue v, SeplError *e);
@@ -319,6 +335,8 @@ SEPL_LIB void sepl_mod_initfunc(SeplModule *mod, SeplError *e, SeplValue func,
 SEPL_LIB SeplValue sepl_mod_getexport(SeplModule *mod, SeplEnv env,
                                       const char *key);
 
+
+
 SEPL_LIB SeplError sepl_com_module(const char *source, SeplModule *mod,
                                    SeplEnv env);
 SEPL_LIB SeplError sepl_com_block(const char *source, SeplModule *mod,
@@ -331,6 +349,8 @@ SEPL_LIB SeplError sepl_com_expr(const char *source, SeplModule *mod,
 #endif
 
 #ifdef SEPL_IMPLEMENTATION
+
+
 
 SEPL_LIB char sepl_is_digit(char c) { return c >= '0' && c <= '9'; }
 
@@ -698,7 +718,7 @@ SEPL_LIB SeplModule sepl_mod_new(unsigned char bytes[], sepl_size bsize,
     return mod;
 }
 
-SEPL_LIB sepl_size sepl_mod_bc(SeplModule *mod, SeplByteCode bc, SeplError *e) {
+SEPL_LIB sepl_size sepl_mod_bc(SeplModule *mod, SeplBC bc, SeplError *e) {
     if (mod->bpos + 1 > mod->bsize) {
         sepl_err_new(e, SEPL_ERR_BOVERFLOW);
         return 0;
@@ -813,7 +833,7 @@ SEPL_LIB SeplValue sepl_mod_step(SeplModule *mod, SeplError *e, SeplEnv env) {
         sepl__pushv(sepl_val_number(d1 op d2));                  \
     } while (0)
 
-    SeplByteCode bc = mod->bytes[mod->pc++];
+    SeplBC bc = (SeplBC)mod->bytes[mod->pc++];
 
     switch (bc) {
         case SEPL_BC_RETURN: {
@@ -1109,10 +1129,12 @@ SEPL_LIB SeplValue sepl_mod_getexport(SeplModule *mod, SeplEnv env,
     return SEPL_NONE;
 }
 
+
 #define SEPL__ASSIGN_NONE 0
 #define SEPL__ASSIGN_LOC 1
 #define SEPL__ASSIGN_UPS 2
 #define SEPL__ASSIGN_UPV 3
+
 
 typedef struct {
     SeplLexer lex;
@@ -1416,9 +1438,9 @@ SEPL_API void sepl__string(SeplCompiler *com) {
         char c = cur.start[i + 1];
         if (c == '\\')
             c = sepl_to_special(cur.start[++i + 1]);
-        sepl__writebyte(com, (unsigned char)c);
+        sepl__writebyte(com, (SeplBC)c);
     }
-    sepl__writebyte(com, '\0');
+    sepl__writebyte(com, (SeplBC)'\0');
     *(sepl_size *)wlen = (com->mod->bytes + com->mod->bpos) - wlen - 4 - 1;
 
     com->scope_size++;
@@ -1455,7 +1477,7 @@ SEPL_API void sepl__binary(SeplCompiler *com) {
     SeplParseRule *rule = sepl__getrule(op);
 
     sepl__nexttok(com);
-    sepl__parse(com, rule->pre + 1);
+    sepl__parse(com, (Precedence)(rule->pre + 1));
     sepl__check(com);
     com->scope_size--;
 
@@ -1505,7 +1527,7 @@ SEPL_API void sepl__and(SeplCompiler *com) {
     com->scope_size--;
 
     sepl__nexttok(com);
-    sepl__parse(com, SEPL_PRE_AND + 1);
+    sepl__parse(com, (Precedence)(SEPL_PRE_AND + 1));
 
     if (sepl__peektok(com).type != SEPL_TOK_AND) {
         unsigned char *jfalse, *jtrue;
@@ -1542,7 +1564,7 @@ SEPL_API void sepl__or(SeplCompiler *com) {
     sepl__setpholder(com, next);
 
     sepl__nexttok(com);
-    sepl__parse(com, SEPL_PRE_OR + 1);
+    sepl__parse(com, (Precedence)(SEPL_PRE_OR + 1));
 
     if (sepl__peektok(com).type != SEPL_TOK_OR) {
         unsigned char *jfalse, *jtrue;

@@ -200,7 +200,7 @@ char *file_read_all(const char *file_path) {
     size_t size = ftell(f);
     rewind(f);
 
-    char *buf = malloc(size + 1);
+    char *buf = (char *)malloc(size + 1);
     if (!buf) {
         fclose(f);
         return NULL;
@@ -293,7 +293,7 @@ int main(int argc, char *argv[]) {
     // Unfortunatly sepl does not support variadic arguments
     // So cli tools using n arguments are not supported
     SeplArgs args;
-    args.values = malloc(sizeof(SeplValue) * (argc + 1));
+    args.values = (SeplValue *)malloc(sizeof(SeplValue) * (argc + 1));
     args.size = argc + 1;
     args.values[0] = sepl_val_number(argc);
     for (int i=1; i < args.size; i++) {

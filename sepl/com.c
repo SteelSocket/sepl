@@ -315,9 +315,9 @@ SEPL_API void sepl__string(SeplCompiler *com) {
         char c = cur.start[i + 1];
         if (c == '\\')
             c = sepl_to_special(cur.start[++i + 1]);
-        sepl__writebyte(com, (unsigned char)c);
+        sepl__writebyte(com, (SeplBC)c);
     }
-    sepl__writebyte(com, '\0');
+    sepl__writebyte(com, (SeplBC)'\0');
     *(sepl_size *)wlen = (com->mod->bytes + com->mod->bpos) - wlen - 4 - 1;
 
     com->scope_size++;
@@ -354,7 +354,7 @@ SEPL_API void sepl__binary(SeplCompiler *com) {
     SeplParseRule *rule = sepl__getrule(op);
 
     sepl__nexttok(com);
-    sepl__parse(com, rule->pre + 1);
+    sepl__parse(com, (Precedence)(rule->pre + 1));
     sepl__check(com);
     com->scope_size--;
 
@@ -404,7 +404,7 @@ SEPL_API void sepl__and(SeplCompiler *com) {
     com->scope_size--;
 
     sepl__nexttok(com);
-    sepl__parse(com, SEPL_PRE_AND + 1);
+    sepl__parse(com, (Precedence)(SEPL_PRE_AND + 1));
 
     if (sepl__peektok(com).type != SEPL_TOK_AND) {
         unsigned char *jfalse, *jtrue;
@@ -441,7 +441,7 @@ SEPL_API void sepl__or(SeplCompiler *com) {
     sepl__setpholder(com, next);
 
     sepl__nexttok(com);
-    sepl__parse(com, SEPL_PRE_OR + 1);
+    sepl__parse(com, (Precedence)(SEPL_PRE_OR + 1));
 
     if (sepl__peektok(com).type != SEPL_TOK_OR) {
         unsigned char *jfalse, *jtrue;

@@ -42,7 +42,7 @@ typedef enum {
     SEPL_BC_GTE,
     SEPL_BC_EQ,
     SEPL_BC_NEQ
-} SeplByteCode;
+} SeplBC;
 
 typedef struct {
     unsigned char *bytes;
@@ -61,7 +61,7 @@ typedef struct {
 
 SEPL_LIB SeplModule sepl_mod_new(unsigned char bytes[], sepl_size bsize,
                                  SeplValue values[], sepl_size vsize);
-SEPL_LIB sepl_size sepl_mod_bc(SeplModule *mod, SeplByteCode bc, SeplError *e);
+SEPL_LIB sepl_size sepl_mod_bc(SeplModule *mod, SeplBC bc, SeplError *e);
 SEPL_LIB sepl_size sepl_mod_bcnum(SeplModule *mod, double n, SeplError *e);
 SEPL_LIB sepl_size sepl_mod_bcsize(SeplModule *mod, sepl_size s, SeplError *e);
 SEPL_LIB sepl_size sepl_mod_val(SeplModule *mod, SeplValue v, SeplError *e);
