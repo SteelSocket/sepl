@@ -86,7 +86,7 @@ void single_var() {
     assert_str("{ @a = { return 1;}; return a; }", 1);
 
     // inner variable assigned and returned to outer variable
-    assert_sepl("{ @a = { @a = 1; return a;}; return a; }", 1);
+    assert_str("{ @a = { @a = 1; return a;}; return a; }", 1);
 }
 
 void var_conditional() {
