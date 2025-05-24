@@ -318,7 +318,7 @@ SEPL_API void sepl__string(SeplCompiler *com) {
         sepl__writebyte(com, (SeplBC)c);
     }
     sepl__writebyte(com, (SeplBC)'\0');
-    *(sepl_size *)wlen = (com->mod->bytes + com->mod->bpos) - wlen - 4 - 1;
+    *(sepl_size *)wlen = (com->mod->bytes + com->mod->bpos) - wlen - sizeof(sepl_size) - 1;
 
     com->scope_size++;
     sepl__check_vlimit(com);
