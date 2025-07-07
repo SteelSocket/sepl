@@ -12,7 +12,9 @@ SeplError compile_s(const char *src, unsigned char bytes[], size_t n1,
                     SeplValue values[], size_t n2) {
     SeplEnv env = {0};
     SeplModule mod = sepl_mod_new(bytes, n1, values, n2);
-    SeplError err = sepl_com_block(src, &mod, env);
+    SeplCompiler com = sepl_com_init(src, &mod, env);
+    sepl_com_block(&com);
+    SeplError err = sepl_com_finish(&com);
     return err;
 }
 
@@ -20,7 +22,9 @@ SeplError run_s(const char *src, unsigned char bytes[], size_t n1,
                 SeplValue values[], size_t n2) {
     SeplEnv env = {0};
     SeplModule mod = sepl_mod_new(bytes, n1, values, n2);
-    SeplError err = sepl_com_block(src, &mod, env);
+    SeplCompiler com = sepl_com_init(src, &mod, env);
+    sepl_com_block(&com);
+    SeplError err = sepl_com_finish(&com);
     if (err.code != SEPL_ERR_OK) {
         fprintf(stderr, "\nFailed to compile:\n%s\n", src);
         assert(err.code == SEPL_ERR_OK);

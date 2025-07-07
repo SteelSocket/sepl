@@ -13,7 +13,9 @@ int main() {
     SeplModule mod = sepl_mod_new(bc, 1024, vl, 100);
 
     /* Compile the function */
-    SeplError error = sepl_com_block("{return 1 + 1;}", &mod, env);
+    SeplCompiler com = sepl_com_init("{return 1 + 1;}", &mod, env);
+    sepl_com_block(&com);
+    SeplError error = sepl_com_finish(&com);
     if (error.code != SEPL_ERR_OK) {
         printf("Failed to compile!\n");
         return 1;

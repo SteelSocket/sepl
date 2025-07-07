@@ -272,9 +272,11 @@ int main(int argc, char *argv[]) {
     module.exports = exports;
     module.esize = array_len(exports);
 
+    SeplCompiler com = sepl_com_init(contents, &module, env);
     // Compile the file as a module
-    SeplError err = sepl_com_module(contents, &module, env);
+    sepl_com_module(&com);
     free(contents);
+    SeplError err = sepl_com_finish(&com);
     assert_error(err, "sepl compilation error: ");
 
     // Execute the module to set up the main function

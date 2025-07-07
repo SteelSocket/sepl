@@ -18,7 +18,9 @@ static inline SeplModule new_mod() {
 }
 
 static SeplValue exec_mod(const char *source, SeplModule *mod) {
-    SeplError err = sepl_com_module(source, mod, env);
+    SeplCompiler com = sepl_com_init(source, mod, env);
+    sepl_com_module(&com);
+    SeplError err = sepl_com_finish(&com);
     assert(err.code == SEPL_ERR_OK);
     sepl_mod_init(mod, &err, env);
     SeplValue v = sepl_mod_exec(mod, &err, env);

@@ -13,7 +13,9 @@ static inline SeplValue tst_run(const char *src) {
     SeplValue values[100];
 
     SeplModule mod = sepl_mod_new(bytes, 1024, values, 1024);
-    SeplError err = sepl_com_block(src, &mod, env);
+    SeplCompiler com = sepl_com_init(src, &mod, env);
+    sepl_com_block(&com);
+    SeplError err = sepl_com_finish(&com);
 
     if (err.code != SEPL_ERR_OK) {
         fprintf(stderr, "\nFailed to compile:\n%s\n", src);
