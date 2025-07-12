@@ -1175,6 +1175,125 @@ SEPL_LIB SeplValue sepl_mod_getexport(SeplModule *mod, SeplEnv env,
 #define SEPL__ASSIGN_UPS 2
 #define SEPL__ASSIGN_UPV 3
 
+#define SEPL__VAR_NONE (SEPL_VAL_OBJ + SEPL_VAL_NONE + 1)
+#define SEPL__VAR_SCOPE (SEPL_VAL_OBJ + SEPL_VAL_SCOPE + 1)
+#define SEPL__VAR_NUM (SEPL_VAL_OBJ + SEPL_VAL_NUM + 1)
+#define SEPL__VAR_STR (SEPL_VAL_OBJ + SEPL_VAL_STR + 1)
+#define SEPL__VAR_FUNC (SEPL_VAL_OBJ + SEPL_VAL_FUNC + 1)
+#define SEPL__VAR_CFUNC (SEPL_VAL_OBJ + SEPL_VAL_CFUNC + 1)
+#define SEPL__VAR_REF (SEPL_VAL_OBJ + SEPL_VAL_REF + 1)
+#define SEPL__VAR_OBJ (SEPL_VAL_OBJ + SEPL_VAL_OBJ + 1)
+
+void print_rawc(const char *str) {
+    for (sepl_size i = 0; str[i] != '\0'; ++i) {
+        switch (str[i]) {
+            case '\n':
+                printf("\\n");
+                break;
+            case '\t':
+                printf("\\t");
+                break;
+            case '\r':
+                printf("\\r");
+                break;
+            case '\b':
+                printf("\\b");
+                break;
+            case '\f':
+                printf("\\f");
+                break;
+            case '\v':
+                printf("\\v");
+                break;
+            case '\a':
+                printf("\\a");
+                break;
+            case '\\':
+                printf("\\\\");
+                break;
+            case '\"':
+                printf("\\\"");
+                break;
+            case '\'':
+                printf("\\\'");
+                break;
+            case '\?':
+                printf("\\?");
+                break;
+            default:
+                // If printable, print directly; else print as hex
+                if ((str[i] >= 32 && str[i] <= 126))
+                    putchar(str[i]);
+                else
+                    printf("\\x%02x", (unsigned char)str[i]);
+                break;
+        }
+    }
+}
+
+void print_valc(SeplValue val) {
+    switch (val.type) {
+        case SEPL_VAL_NONE:
+            printf("SEPL_VAL_NONE");
+            break;
+        case SEPL_VAL_SCOPE:
+            printf("SEPL_VAL_SCOPE");
+            break;
+        case SEPL_VAL_NUM:
+            printf("SEPL_VAL_NUM");
+            break;
+        case SEPL_VAL_STR:
+            printf("SEPL_VAL_STR");
+            break;
+        case SEPL_VAL_FUNC:
+            printf("SEPL_VAL_FUNC");
+            break;
+        case SEPL_VAL_CFUNC:
+            printf("SEPL_VAL_CFUNC");
+            break;
+        case SEPL_VAL_REF:
+            printf("SEPL_VAL_REF");
+            break;
+        case SEPL_VAL_OBJ:
+            printf("SEPL_VAL_OBJ");
+            break;
+        case SEPL__VAR_NONE:
+            printf("SEPL_VAR_NONE");
+            break;
+        case SEPL__VAR_SCOPE:
+            printf("SEPL_VAR_SCOPE");
+            break;
+        case SEPL__VAR_NUM:
+            printf("SEPL_VAR_NUM");
+            break;
+        case SEPL__VAR_STR:
+            printf("SEPL_VAR_STR");
+            break;
+        case SEPL__VAR_FUNC:
+            printf("SEPL_VAR_FUNC");
+            break;
+        case SEPL__VAR_CFUNC:
+            printf("SEPL_VAR_CFUNC");
+            break;
+        case SEPL__VAR_REF:
+            printf("SEPL_VAR_REF");
+            break;
+        case SEPL__VAR_OBJ:
+            printf("SEPL_VAR_OBJ");
+            break;
+    }
+}
+
+void print_val_bufc(SeplCompiler *com) {
+    sepl_size i;
+    for (i = 0; i < com->mod->vpos; i++) {
+        printf("%4lld -- ", i);
+        print_valc(com->mod->values[i]);
+        printf("\n");
+    }
+    printf("\n");
+}
+
 typedef void (*sepl_parse_func)(SeplCompiler *);
 
 typedef enum {
@@ -1212,8 +1331,8 @@ SeplParseRule rules[SEPL_TOK_EOF + 1] = {
 
     {sepl_com_unary, sepl_com_binary, SEPL_PRE_TERM}, /* SEPL_TOK_ADD */
     {sepl_com_unary, sepl_com_binary, SEPL_PRE_TERM}, /* SEPL_TOK_SUB */
-    {SEPL_NULL, sepl_com_binary, SEPL_PRE_FACTOR}, /* SEPL_TOK_MUL */
-    {SEPL_NULL, sepl_com_binary, SEPL_PRE_FACTOR}, /* SEPL_TOK_DIV */
+    {SEPL_NULL, sepl_com_binary, SEPL_PRE_FACTOR},    /* SEPL_TOK_MUL */
+    {SEPL_NULL, sepl_com_binary, SEPL_PRE_FACTOR},    /* SEPL_TOK_DIV */
 
     {sepl_com_unary, SEPL_NULL, SEPL_PRE_TERM}, /* SEPL_TOK_NOT */
     {SEPL_NULL, sepl_com_and, SEPL_PRE_AND},    /* SEPL_TOK_AND */
@@ -1227,9 +1346,9 @@ SeplParseRule rules[SEPL_TOK_EOF + 1] = {
     {SEPL_NULL, sepl_com_binary, SEPL_PRE_REL_EQ}, /* SEPL_TOK_NEQ */
 
     {sepl_com_grouping, sepl_com_call, SEPL_PRE_CALL}, /* SEPL_TOK_LPAREN */
-    {SEPL_NULL, SEPL_NULL, SEPL_PRE_NONE},       /* SEPL_TOK_RPAREN */
-    {sepl_com_block, SEPL_NULL, SEPL_PRE_NONE},     /* SEPL_TOK_RCURLY */
-    {SEPL_NULL, SEPL_NULL, SEPL_PRE_NONE},       /* SEPL_TOK_LCURLY */
+    {SEPL_NULL, SEPL_NULL, SEPL_PRE_NONE},             /* SEPL_TOK_RPAREN */
+    {sepl_com_block, SEPL_NULL, SEPL_PRE_NONE},        /* SEPL_TOK_RCURLY */
+    {SEPL_NULL, SEPL_NULL, SEPL_PRE_NONE},             /* SEPL_TOK_LCURLY */
 
     {sepl_com_identifier, SEPL_NULL, SEPL_PRE_ASSIGN}, /* SEPL_TOK_IDENTIFIER */
 
@@ -1253,7 +1372,7 @@ SeplParseRule rules[SEPL_TOK_EOF + 1] = {
 #define sepl__writesize(com, value) \
     (sepl_mod_bcsize((com)->mod, value, &(com)->error))
 #define sepl__writepop(com) \
-    (sepl__writebyte((com), SEPL_BC_POP), (com)->scope_size--)
+    (sepl__writebyte((com), SEPL_BC_POP), (com)->mod->vpos--)
 
 #define sepl__writeconst(com, type, value)                       \
     (sepl__writebyte((com), type), sepl__writenum((com), value), \
@@ -1327,21 +1446,16 @@ SEPL_API void sepl__parse(SeplCompiler *com, Precedence pre) {
 
 SEPL_API void sepl__markvar(SeplCompiler *com, const char *start) {
     SeplValue v = sepl_val_object((void *)start);
+    v.type = SEPL__VAR_NONE;
     sepl_mod_val(com->mod, v, &com->error);
     com->scope_size++;
     sepl__check_vlimit(com);
 }
 
-SEPL_API void sepl__markscope(SeplCompiler *com) {
-    sepl_mod_val(com->mod, sepl_val_scope(0), &com->error);
-    com->scope_size++;
-    sepl__check_vlimit(com);
-}
-
-SEPL_API void sepl__markfunc(SeplCompiler *com) {
-    sepl_mod_val(com->mod, sepl_val_func(0), &com->error);
-    com->scope_size++;
-    sepl__check_vlimit(com);
+SEPL_API void sepl__markval(SeplCompiler *com, SeplValueType type) {
+    SeplValue v = {0};
+    v.type = type;
+    sepl_mod_val(com->mod, v, &com->error);
 }
 
 SEPL_API char sepl__varcmp(const char *v, const char *i) {
@@ -1371,16 +1485,19 @@ SEPL_API sepl_size sepl__findvar(SeplCompiler *com, SeplToken iden,
 
     for (pos = com->mod->vpos; pos-- != 0;) {
         char *v_start, *i_start;
+        SeplValue var = com->mod->values[pos];
 
-        if (sepl_val_isscp(com->mod->values[pos])) {
+        if (sepl_val_isscp(var)) {
             *upv = SEPL__ASSIGN_UPS;
             continue;
-        } else if (sepl_val_isfun(com->mod->values[pos])) {
+        } else if (sepl_val_isfun(var)) {
             *upv = SEPL__ASSIGN_UPV;
+            continue;
+        } else if (var.type < SEPL__VAR_NONE) {
             continue;
         }
 
-        v_start = (char *)com->mod->values[pos].as.obj;
+        v_start = (char *)var.as.obj;
         i_start = (char *)iden.start;
 
         if (sepl__varcmp(v_start, i_start)) {
@@ -1397,14 +1514,17 @@ SEPL_API char sepl__existsvar(SeplCompiler *com, SeplToken iden) {
 
     for (pos = com->mod->vpos; pos-- != 0;) {
         char *v_start, *i_start;
+        SeplValue var = com->mod->values[pos];
 
-        if (sepl_val_isscp(com->mod->values[pos])) {
+        if (sepl_val_isscp(var)) {
             break;
-        } else if (sepl_val_isfun(com->mod->values[pos])) {
+        } else if (sepl_val_isfun(var)) {
             break;
+        } else if (var.type < SEPL__VAR_NONE) {
+            continue;
         }
 
-        v_start = (char *)com->mod->values[pos].as.obj;
+        v_start = (char *)var.as.obj;
         i_start = (char *)iden.start;
 
         if (sepl__varcmp(v_start, i_start)) {
@@ -1423,6 +1543,8 @@ SEPL_API char sepl__existsvar(SeplCompiler *com, SeplToken iden) {
 SEPL_LIB void sepl_com_number(SeplCompiler *com) {
     double num = sepl_lex_num(sepl__currtok(com));
     sepl__writeconst(com, SEPL_BC_CONST, num);
+
+    sepl__markval(com, SEPL_VAL_NUM);
     sepl__check_vlimit(com);
 }
 
@@ -1440,7 +1562,8 @@ SEPL_LIB void sepl_com_string(SeplCompiler *com) {
         sepl__writebyte(com, (SeplBC)c);
     }
     sepl__writebyte(com, (SeplBC)'\0');
-    *(sepl_size *)wlen = (com->mod->bytes + com->mod->bpos) - wlen - sizeof(sepl_size) - 1;
+    *(sepl_size *)wlen =
+        (com->mod->bytes + com->mod->bpos) - wlen - sizeof(sepl_size) - 1;
 
     com->scope_size++;
     sepl__check_vlimit(com);
@@ -1448,7 +1571,8 @@ SEPL_LIB void sepl_com_string(SeplCompiler *com) {
 
 SEPL_LIB void sepl_com_none(SeplCompiler *com) {
     sepl__writebyte(com, SEPL_BC_NONE);
-    com->scope_size++;
+
+    sepl__markval(com, SEPL_VAL_NONE);
     sepl__check_vlimit(com);
 }
 
@@ -1478,7 +1602,8 @@ SEPL_LIB void sepl_com_binary(SeplCompiler *com) {
     sepl__nexttok(com);
     sepl__parse(com, (Precedence)(rule->pre + 1));
     sepl__check(com);
-    com->scope_size--;
+
+    com->mod->vpos--;
 
     switch (op.type) {
         case SEPL_TOK_ADD:
@@ -1523,7 +1648,7 @@ SEPL_LIB void sepl_com_and(SeplCompiler *com) {
 
     sepl__writebyte(com, SEPL_BC_JUMPIF);
     jump = sepl__writeplaceholder(com);
-    com->scope_size--;
+    com->mod->vpos--;
 
     sepl__nexttok(com);
     sepl__parse(com, (Precedence)(SEPL_PRE_AND + 1));
@@ -1532,7 +1657,7 @@ SEPL_LIB void sepl_com_and(SeplCompiler *com) {
         unsigned char *jfalse, *jtrue;
         sepl__writebyte(com, SEPL_BC_JUMPIF);
         jfalse = sepl__writeplaceholder(com);
-        com->scope_size--;
+        com->mod->vpos--;
 
         sepl__writeconst(com, SEPL_BC_CONST, 1.0);
         sepl__writebyte(com, SEPL_BC_JUMP);
@@ -1542,7 +1667,7 @@ SEPL_LIB void sepl_com_and(SeplCompiler *com) {
         sepl__setpholder(com, jfalse);
         sepl__writeconst(com, SEPL_BC_CONST, 0.0);
         sepl__setpholder(com, jtrue);
-        com->scope_size--;
+        com->mod->vpos--;
 
     } else {
         sepl__nexttok(com);
@@ -1557,6 +1682,7 @@ SEPL_LIB void sepl_com_or(SeplCompiler *com) {
 
     sepl__writebyte(com, SEPL_BC_JUMPIF);
     next = sepl__writeplaceholder(com);
+    com->mod->vpos--;
 
     sepl__writebyte(com, SEPL_BC_JUMP);
     end = sepl__writeplaceholder(com);
@@ -1569,7 +1695,7 @@ SEPL_LIB void sepl_com_or(SeplCompiler *com) {
         unsigned char *jfalse, *jtrue;
         sepl__writebyte(com, SEPL_BC_JUMPIF);
         jfalse = sepl__writeplaceholder(com);
-        com->scope_size--;
+        com->mod->vpos--;
 
         sepl__setpholder(com, end);
         sepl__writeconst(com, SEPL_BC_CONST, 1.0);
@@ -1579,7 +1705,7 @@ SEPL_LIB void sepl_com_or(SeplCompiler *com) {
         sepl__setpholder(com, jfalse);
         sepl__writeconst(com, SEPL_BC_CONST, 0.0);
         sepl__setpholder(com, jtrue);
-        com->scope_size--;
+        com->mod->vpos--;
     } else {
         sepl__nexttok(com);
         sepl_com_or(com);
@@ -1589,7 +1715,7 @@ SEPL_LIB void sepl_com_or(SeplCompiler *com) {
 }
 
 SEPL_LIB void sepl_com_assign(SeplCompiler *com, sepl_size index,
-                           sepl_size upvalue) {
+                              sepl_size upvalue) {
     sepl_size oss = com->scope_size;
 
     sepl__nexttok(com);
@@ -1696,7 +1822,10 @@ SEPL_LIB void sepl_com_func(SeplCompiler *com) {
     sepl__writebyte(com, SEPL_BC_FUNC);
     skip = sepl__writeplaceholder(com);
     params = sepl__writeplaceholder(com);
-    sepl__markfunc(com);
+
+    sepl__markval(com, SEPL_VAL_FUNC);
+    com->scope_size++;
+    sepl__check_vlimit(com);
 
     sepl__nexttok(com);
     sepl__params(com, params);
@@ -1744,22 +1873,26 @@ SEPL_LIB void sepl_com_grouping(SeplCompiler *com) {
     sepl__check_tok(com, SEPL_TOK_RPAREN);
 }
 
-SEPL_LIB void sepl_com_expr(SeplCompiler *com) { sepl__parse(com, SEPL_PRE_EXPR); }
+SEPL_LIB void sepl_com_expr(SeplCompiler *com) {
+    sepl__parse(com, SEPL_PRE_EXPR);
+}
 
 SEPL_LIB void sepl_com_return(SeplCompiler *com) {
-    sepl_size old_ss = com->scope_size;
+    sepl_size old_ss = com->mod->vpos;
     SeplToken peek = sepl__peektok(com);
 
     if (peek.type != SEPL_TOK_SEMICOLON) {
         sepl__nexttok(com);
         sepl_com_expr(com);
-        if (old_ss == com->scope_size)
+        if (old_ss == com->mod->vpos) {
             sepl__writebyte(com, SEPL_BC_NONE);
+            sepl__markval(com, SEPL_VAL_NONE);
+        }
     } else {
         sepl__writebyte(com, SEPL_BC_NONE);
+        sepl__markval(com, SEPL_VAL_NONE);
     }
     sepl__writebyte(com, SEPL_BC_RETURN);
-    com->scope_size = old_ss + 1;
 }
 
 SEPL_LIB void sepl__else(SeplCompiler *com, unsigned char *if_jump,
@@ -1896,9 +2029,9 @@ SEPL_LIB void sepl__stmt(SeplCompiler *com) {
     } else if (curr.type == SEPL_TOK_VAR) {
         sepl_com_variable(com);
     } else if (curr.type != SEPL_TOK_EOF) {
-        sepl_size oss = com->scope_size;
+        sepl_size oss = com->mod->vpos;
         sepl_com_expr(com);
-        if (com->scope_size - oss)
+        if (com->mod->vpos - oss)
             sepl__writepop(com);
     }
 
@@ -1910,7 +2043,7 @@ SEPL_LIB void sepl__stmt(SeplCompiler *com) {
 SEPL_LIB void sepl_com_block(SeplCompiler *com) {
     char ret = 0;
     SeplToken tok;
-    sepl_size oss = com->scope_size, ovp = com->mod->vpos;
+    sepl_size ovp = com->mod->vpos;
     unsigned char *scope_end = SEPL_NULL;
 
     sepl__check_tok(com, SEPL_TOK_LCURLY);
@@ -1918,7 +2051,11 @@ SEPL_LIB void sepl_com_block(SeplCompiler *com) {
 
     sepl__writebyte(com, SEPL_BC_SCOPE);
     scope_end = sepl__writeplaceholder(com);
-    sepl__markscope(com);
+
+    sepl__markval(com, SEPL_VAL_SCOPE);
+    com->scope_size++;
+    sepl__check_vlimit(com);
+
     com->inner_ret = 0;
 
     while (tok.type != SEPL_TOK_RCURLY) {
@@ -1942,12 +2079,15 @@ SEPL_LIB void sepl_com_block(SeplCompiler *com) {
     if (!ret) {
         sepl__writebyte(com, SEPL_BC_NONE);
         sepl__writebyte(com, SEPL_BC_RETURN);
+        sepl__markval(com, SEPL_VAL_NONE);
     }
 
-    com->block_size = com->scope_size;
-    com->scope_size = oss + 1;
-    com->mod->vpos = ovp;
+    com->block_size = com->mod->vpos;
     com->block_ret = ret;
+
+    com->mod->values[ovp + 1] = com->mod->values[com->mod->vpos - 1];
+    com->mod->vpos = ovp + 1;
+
     sepl__setpholder(com, scope_end);
     sepl__check_vlimit(com);
 }

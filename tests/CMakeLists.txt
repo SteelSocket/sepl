@@ -1,4 +1,16 @@
-set(TEST_SOURCES config.c values.c op.c errors.c lexer.c conditional.c loops.c var.c string.c functions.c module.c)
+set(TEST_SOURCES 
+    config.c
+    values.c 
+    op.c
+    errors.c
+    lexer.c
+    conditional.c
+    loops.c
+    var.c
+    string.c
+    functions.c
+    module.c
+)
 
 foreach(TEST_FILE ${TEST_SOURCES})
     get_filename_component(TEST_NAME ${TEST_FILE} NAME_WE)

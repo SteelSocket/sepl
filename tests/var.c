@@ -76,7 +76,7 @@ void single_var() {
         return a;
     });
 
-    // variable set to none implicitly 
+    // variable set to none implicitly
     assert_sepl_none({
         @a;
         return a;
@@ -149,4 +149,113 @@ void multi_var() {
     assert_str("{ @a = 2; @b = { @c = a + 3; return c * 2; }; return b; }", 10);
 }
 
-SEPL_TEST_GROUP(single_var, var_conditional, var_assign_block, multi_var);
+void var_oper() {
+    // Arithmetic tests between two variables
+    assert_sepl(
+        {
+            @a = 1;
+            @b = 2;
+            return a + b;
+        },
+        3);
+
+    assert_sepl(
+        {
+            @a = 5;
+            @b = 2;
+            return a - b;
+        },
+        3);
+    assert_sepl(
+        {
+            @a = 4;
+            @b = 2;
+            return a * b;
+        },
+        8);
+    assert_sepl(
+        {
+            @a = 10;
+            @b = 2;
+            return a / b;
+        },
+        5);
+
+    
+    // Relational tests between two variables
+    assert_sepl(
+        {
+            @a = 1;
+            @b = 2;
+            return a > b;
+        },
+        0);
+
+    assert_sepl(
+        {
+            @a = 5;
+            @b = 2;
+            return a < b;
+        },
+        0);
+    assert_sepl(
+        {
+            @a = 4;
+            @b = 4;
+            return a >= b;
+        },
+        1);
+    assert_sepl(
+        {
+            @a = 10;
+            @b = 2;
+            return a <= b;
+        },
+        0);
+    assert_sepl(
+        {
+            @a = 4;
+            @b = 4;
+            return a == b;
+        },
+        1);
+    assert_sepl(
+        {
+            @a = 10;
+            @b = 2;
+            return a != b;
+        },
+        1);
+
+
+    // Logical tests between two variables
+    assert_sepl(
+        {
+            @a = 1;
+            return !a;
+        },
+        0);
+    assert_sepl(
+        {
+            @a = 0;
+            return !a;
+        },
+        1);
+
+    assert_sepl(
+        {
+            @a = 5;
+            @b = 1;
+            return a && b;
+        },
+        1);
+    assert_sepl(
+        {
+            @a = 0;
+            @b = 1;
+            return a || b;
+        },
+        1);
+}
+
+SEPL_TEST_GROUP(single_var, var_conditional, var_assign_block, multi_var, var_oper);
