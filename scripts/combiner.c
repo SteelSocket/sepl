@@ -15,14 +15,12 @@ const char *header_files[] = {
     SRC_DIR "val.h",
     SRC_DIR "env.h",
     SRC_DIR "mod.h",
-    SRC_DIR "com.h",
 };
 
 const char *src_files[] = {
     SRC_DIR "lex.c",
     SRC_DIR "val.c",
     SRC_DIR "mod.c",
-    SRC_DIR "com.c",
 };
 
 typedef struct {

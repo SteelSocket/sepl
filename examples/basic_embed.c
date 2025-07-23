@@ -2,6 +2,7 @@
 
 #define SEPL_IMPLEMENTATION
 #include "../sepl.h"
+#include "../sepl_com.h"
 
 int main() {
     /* Define bytecode buffer and value buffer */

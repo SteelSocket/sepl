@@ -6,6 +6,7 @@
 
 #define SEPL_IMPLEMENTATION
 #include "../sepl.h"
+#include "../sepl_com.h"
 
 #include "tests.h"
 

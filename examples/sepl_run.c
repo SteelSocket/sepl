@@ -4,6 +4,7 @@
 
 #define SEPL_IMPLEMENTATION
 #include "../sepl.h"
+#include "../sepl_com.h"
 
 #define MAX_BC_BUF 1024 * 10
 #define MAX_VAL_BUF 200

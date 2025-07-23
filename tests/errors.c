@@ -5,6 +5,7 @@
 
 #define SEPL_IMPLEMENTATION
 #include "../sepl.h"
+#include "../sepl_com.h"
 
 #include "tests.h"
 
@@ -69,6 +70,11 @@ void compile_time_errors() {
     // Undefined Variable Init
     assert(compile("{ @a = b; }") == SEPL_ERR_IDEN_NDEF);
 
+    // Invalid operation
+    assert(compile("{ NONE + 1;}"));
+    assert(compile("{ \"\"+ 1;}"));
+    assert(compile("{ \"\"+ NONE;}"));
+
     // Invalid Variable Assign
     assert(compile("{ 1 = 20; }") == SEPL_ERR_UPTOK);
     assert(error_info("{ 1 = 20; }").tokd.up.type == SEPL_TOK_ASSIGN);
@@ -95,6 +101,7 @@ void compile_time_errors() {
     assert(compile("{ @a = $(){ @b = $(){}; }; }") == SEPL_ERR_CLOSURE);
     // Function cannot be set to upvalue
     assert(compile("{ @a; { a = $(){}; }; }") == SEPL_ERR_FUNC_UPV);
+
 }
 
 void run_time_errors() {

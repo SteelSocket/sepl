@@ -3,13 +3,13 @@ project(sepl VERSION 0.0.1)
 
 add_subdirectory(sepl/)
 
-option(BUILD_EXAMPLES "BUILD EXAMPLES" ON)
-if(BUILD_EXAMPLES)
+option(SEPL_EXAMPLES "BUILD EXAMPLES" ON)
+if(SEPL_EXAMPLES)
     add_subdirectory(examples/)
 endif()
 
-option(BUILD_TESTS "BUILD TESTS" OFF)
-if(BUILD_TESTS)
+option(SEPL_TESTS "BUILD TESTS" OFF)
+if(SEPL_TESTS)
     include(CTest)
     enable_testing()
     add_subdirectory(tests/)

@@ -4,7 +4,6 @@ add_library(sepl
     lex.c
     val.c
     mod.c
-    com.c
 )
 target_include_directories(sepl PUBLIC .)
 

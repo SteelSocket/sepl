@@ -83,8 +83,6 @@ SEPL_LIB void sepl_mod_cleanup(SeplModule *mod, SeplEnv env) {
 SEPL_API double sepl__todbl(SeplError *err, SeplValue v) {
     if (sepl_val_isnum(v)) {
         return v.as.num;
-    } else if (sepl_val_isobj(v)) {
-        return v.as.num;
     } else if (sepl_val_isref(v)) {
         return sepl__todbl(err, *(SeplValue *)v.as.obj);
     }

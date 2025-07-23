@@ -2,6 +2,7 @@
 #define SEPL_TESTS
 
 #include "../sepl.h"
+#include "../sepl_com.h"
 
 #include <assert.h>
 #include <stdio.h>
