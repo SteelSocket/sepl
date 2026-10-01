@@ -28,4 +28,11 @@ sepl__static_assert(sepl__is_unsigned(sepl_size), is_unsigned);
 #define SEPL_API static
 #endif
 
+#ifndef SEPL_MEMCPY
+#define SEPL_MEMCPY sepl__memcpy /* Defined in mod.c section */
+#endif
+
+#define sepl__is_ovf(pos, inc, size) ((inc) > (size) || (pos) > (size) - (inc))
+#define sepl__is_unf(pos, dec) ((dec) > (pos))
+
 #endif

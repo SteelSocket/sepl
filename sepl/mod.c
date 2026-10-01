@@ -1,7 +1,16 @@
 #include "mod.h"
+#include "def.h"
 #include "env.h"
 #include "err.h"
 #include "val.h"
+
+SEPL_API unsigned char *sepl__memcpy(unsigned char *dst,
+                                     const unsigned char *src, sepl_size n) {
+    unsigned char *d = dst;
+    const unsigned char *s = src;
+    while (n--) *d++ = *s++;
+    return dst;
+}
 
 SEPL_LIB SeplModule sepl_mod_new(unsigned char bytes[], sepl_size bsize,
                                  SeplValue values[], sepl_size vsize) {
@@ -14,7 +23,7 @@ SEPL_LIB SeplModule sepl_mod_new(unsigned char bytes[], sepl_size bsize,
 }
 
 SEPL_LIB sepl_size sepl_mod_bc(SeplModule *mod, SeplBC bc, SeplError *e) {
-    if (mod->bpos + 1 > mod->bsize) {
+    if (sepl__is_ovf(mod->bpos, 1, mod->bsize)) {
         sepl_err_new(e, SEPL_ERR_BOVERFLOW);
         return 0;
     }
@@ -23,27 +32,27 @@ SEPL_LIB sepl_size sepl_mod_bc(SeplModule *mod, SeplBC bc, SeplError *e) {
 }
 
 SEPL_LIB sepl_size sepl_mod_bcnum(SeplModule *mod, double n, SeplError *e) {
-    if (mod->bpos + sizeof(n) > mod->bsize) {
+    if (sepl__is_ovf(mod->bpos, sizeof(n), mod->bsize)) {
         sepl_err_new(e, SEPL_ERR_BOVERFLOW);
         return 0;
     }
-    *(double *)(mod->bytes + mod->bpos) = n;
+    SEPL_MEMCPY(mod->bytes + mod->bpos, (unsigned char *)&n, sizeof(n));
     mod->bpos += sizeof(n);
     return mod->bpos - sizeof(n);
 }
 
 SEPL_LIB sepl_size sepl_mod_bcsize(SeplModule *mod, sepl_size s, SeplError *e) {
-    if (mod->bpos + sizeof(s) > mod->bsize) {
+    if (sepl__is_ovf(mod->bpos, sizeof(s), mod->bsize)) {
         sepl_err_new(e, SEPL_ERR_BOVERFLOW);
         return 0;
     }
-    *(sepl_size *)(mod->bytes + mod->bpos) = s;
+    SEPL_MEMCPY(mod->bytes + mod->bpos, (unsigned char *)&s, sizeof(s));
     mod->bpos += sizeof(s);
     return mod->bpos - sizeof(s);
 }
 
 SEPL_LIB sepl_size sepl_mod_val(SeplModule *mod, SeplValue v, SeplError *e) {
-    if (mod->vpos >= mod->vsize) {
+    if (sepl__is_ovf(mod->vpos, 0, mod->vsize)) {
         sepl_err_new(e, SEPL_ERR_VOVERFLOW);
         return 0;
     }
@@ -90,13 +99,31 @@ SEPL_API double sepl__todbl(SeplError *err, SeplValue v) {
     return 0.0;
 }
 
+SEPL_API double sepl__read_double(SeplModule *mod) {
+    double value;
+    if (sepl__is_ovf(mod->pc, sizeof(value), mod->bsize)) {
+        return 0.0;
+    }
+
+    SEPL_MEMCPY((unsigned char *)&value, mod->bytes + mod->pc, sizeof(value));
+    mod->pc += sizeof(value);
+    return value;
+}
+
+SEPL_API sepl_size sepl__read_size(SeplModule *mod) {
+    sepl_size value;
+    if (sepl__is_ovf(mod->pc, sizeof(value), mod->bsize)) {
+        return 0;
+    }
+
+    SEPL_MEMCPY((unsigned char *)&value, mod->bytes + mod->pc, sizeof(value));
+    mod->pc += sizeof(value);
+    return value;
+}
+
 SEPL_LIB SeplValue sepl_mod_step(SeplModule *mod, SeplError *e, SeplEnv env) {
-#define sepl__rddbl()           \
-    (mod->pc += sizeof(double), \
-     *(double *)(mod->bytes + mod->pc - sizeof(double)))
-#define sepl__rdsz()               \
-    (mod->pc += sizeof(sepl_size), \
-     *(sepl_size *)(mod->bytes + mod->pc - sizeof(sepl_size)))
+#define sepl__rddbl() (sepl__read_double(mod))
+#define sepl__rdsz() (sepl__read_size(mod))
 
 #define sepl__pushv(val) (sepl_mod_val(mod, val, e))
 #define sepl__popv()                \

@@ -101,7 +101,7 @@ SEPL_API SeplToken sepl__make_string(SeplLexer *lex) {
     tok.end = lex->source;
 
     while (*tok.end != '"' && *tok.end != '\0') {
-        if (*tok.end++ == '\\') {
+        if (*tok.end++ == '\\' && *tok.end != '\0') {
             tok.end++;
         }
     }

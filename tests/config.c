@@ -3,9 +3,11 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #define SEPL_DEF_SIZE unsigned long long
 #define SEPL_NULL ((void *)1)
+#define SEPL_MEMCPY memcpy
 
 #define SEPL_IMPLEMENTATION
 #include "../sepl.h"
@@ -15,6 +17,7 @@
 void definitions_tests() {
     assert(sizeof(sepl_size) == sizeof(size_t));
     assert(SEPL_NULL == ((void *)1));
+    assert(SEPL_MEMCPY == memcpy);
 }
 
 void struct_tests() {
